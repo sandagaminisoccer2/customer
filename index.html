@@ -6665,6 +6665,26 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        // ===== LATAR POSTER DARI WEB ADMIN (Firebase: settings/posterBackground) =====
+        // Admin upload latar baru lewat menu Sparing. Kalau belum ada, tetap pakai
+        // latarsparing.png (Cari Lawan Sparing) dan latarlawan.png (Match Founded) bawaan.
+        (function () {
+            let styleEl = null;
+            const isImg = (v) => typeof v === 'string' && /^data:image\/(png|jpe?g|webp);base64,/i.test(v);
+            onValue(ref(db, 'settings/posterBackground'), (snap) => {
+                const d = snap.val() || {};
+                let css = '';
+                if (isImg(d.sparing)) css += '#mf-poster.mf-pending{background-image:url("' + d.sparing + '") !important;}';
+                if (isImg(d.lawan)) css += '#mf-poster:not(.mf-pending){background-image:url("' + d.lawan + '") !important;}';
+                if (!styleEl) {
+                    styleEl = document.createElement('style');
+                    styleEl.id = 'poster-bg-from-admin';
+                    document.head.appendChild(styleEl);
+                }
+                styleEl.textContent = css;
+            }, (err) => console.warn('Latar poster admin gagal dimuat, pakai bawaan:', err));
+        })();
+
         function getLocalDateString(date = new Date()) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -7547,18 +7567,19 @@ document.addEventListener('DOMContentLoaded', () => {
           function logoHtml(name,itemLogo){
             const safe=esc(name||'Tim');
             const logo=getLogo(name,itemLogo);
-            if(logo)return `<div class="sparing-final-logo"><img src="${esc(logo)}" alt="Logo ${safe}" loading="lazy" class="customer-member-logo-fade is-visible" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='grid'"><span class="sparing-final-logo-fallback" style="display:none">${initials(name)}</span></div>`;
-            // Logo BELUM ada (tidak dititip inline di data sparring & belum
-            // ada di cache). Tampilkan inisial dulu saja, lalu antre ambil
-            // logo tim ini satu-per-satu lewat requestTeamLogo() — begitu
-            // giliran tim ini selesai diambil, HANYA kartu ini yang
-            // diperbarui (updateSingleSparringLogo), tanpa membangun ulang
-            // seluruh daftar sparring.
             const key = (typeof getTeamLogoKeyCustomer==='function') ? getTeamLogoKeyCustomer(name) : '';
+            const keyAttr = key?` data-team-key="${esc(key)}"`:'';
+            // 1) Logo sudah ada -> tampilkan. Kalau gambarnya rusak, ganti stempel.
+            if(logo)return `<div class="sparing-final-logo"${keyAttr} data-logo-state="found"><img src="${esc(logo)}" alt="Logo ${safe}" loading="lazy" class="customer-member-logo-fade is-visible" onerror="this.onerror=null;var w=this.parentNode.querySelector('.logo-none-wrap');if(w)w.hidden=false;this.remove()"><span class="logo-none-wrap" hidden>${logoStampHtml()}</span></div>`;
+            const status = (typeof getTeamLogoStatus==='function') ? getTeamLogoStatus(name) : 'missing';
+            // 2) Sudah pasti tidak ada -> stempel "LOGO TIDAK ADA" (langsung, tanpa menunggu).
+            if(status==='missing')return `<div class="sparing-final-logo"${keyAttr} data-logo-state="missing"><span class="logo-none-wrap">${logoStampHtml()}</span></div>`;
+            // 3) Masih diambil -> spinner berputar di placeholder, lalu antre ambil logo.
+            //    Begitu selesai, HANYA kartu ini yang diperbarui (updateSingleSparringLogo).
             if(key && typeof requestTeamLogo==='function'){
               requestTeamLogo(name, () => { if(typeof updateSingleSparringLogo==='function') updateSingleSparringLogo(key); });
             }
-            return `<div class="sparing-final-logo"${key?` data-team-key="${esc(key)}"`:''}><span class="sparing-final-logo-fallback">${initials(name)}</span></div>`;
+            return `<div class="sparing-final-logo"${keyAttr} data-logo-state="loading">${logoSpinnerHtml()}</div>`;
           }
           function active(item,now,today){const d=String(item?.tanggal||'').trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d<today)return false;if(d===today){const m=String(item?.jam||'').match(/(\d{1,2})(?::(\d{2}))?/);if(m){const h=+m[1],mi=+(m[2]||0);if(h>=0&&h<=23&&mi>=0&&mi<=59&&now>=new Date(now.getFullYear(),now.getMonth(),now.getDate(),h,mi,0,0))return false;}}return true;}
           function meta(item,ok){const d=item?.tanggal?String(item.tanggal).split('-').reverse().join('/'):'-';const j=esc(item?.jam||'-');return `<div class="${ok?'sparing-final-meta':'customer-sparring-meta'}"><span>📅 ${d}</span><span>⏰ ${j}</span><span class="${ok?'ok':'customer-sparring-status'}">${ok?'✓ SUDAH DAPAT LAWAN':'⌛ MENCARI LAWAN'}</span></div>`;}
@@ -7885,6 +7906,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     globalCache.sparring[currentKey].timB = namaBersih;
                     globalCache.sparring[currentKey].noHpB = noHpBBersih;
                     globalCache.sparring[currentKey].matchedAt = Date.now();
+                }
+
+                // Beri tahu ADMIN: tulis catatan notifikasi ke Firebase (sparringNotifications).
+                // Web admin tinggal mendengarkan node ini. Dibuat "best effort": kalau gagal
+                // (mis. aturan database), pasangan sparring & WhatsApp tetap jalan normal.
+                // Ditunggu maksimal 3 detik karena halaman akan pindah ke WhatsApp.
+                try {
+                    await Promise.race([
+                        push(ref(db, 'sparringNotifications'), {
+                            type: 'sparring_matched',
+                            sparringKey: currentKey,
+                            timA: String(currentItem.timA || '').trim(),
+                            noHpA: phone,
+                            timB: namaBersih,
+                            noHpB: noHpBBersih,
+                            tanggal: String(currentItem.tanggal || ''),
+                            jam: String(currentItem.jam || ''),
+                            createdAt: Date.now(),
+                            read: false
+                        }),
+                        new Promise(resolve => setTimeout(resolve, 3000))
+                    ]);
+                } catch(notifError) {
+                    console.warn('Notifikasi admin sparring gagal dikirim:', notifError);
                 }
 
                 closeModal();
@@ -8526,42 +8571,134 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
             return teamLogoFullFallbackPromise;
         }
 
+        // Logo yang terkonfirmasi TIDAK ADA (key -> waktu dicatat). Dipakai supaya
+        // kartu langsung menampilkan stempel "logo tidak ada" tanpa menunggu.
+        // Berlaku 60 detik, setelah itu boleh dicoba ambil ulang (mis. koneksi
+        // sempat putus atau admin baru mengunggah logo).
+        const teamLogoMissing = new Map();
+        const TEAM_LOGO_MISSING_TTL = 60000;
+        // Callback yang sudah diberi tahu "tidak ada", tapi tetap dipanggil lagi
+        // kalau pencarian cadangan di latar belakang akhirnya menemukan logonya.
+        const teamLogoLateWaiters = new Map();
+
+        function getTeamLogoStatus(name) {
+            const key = getTeamLogoKeyCustomer(name);
+            if(!key) return 'missing';
+            if(getCustomerTeamLogo(name)) return 'found';
+            const t = teamLogoMissing.get(key);
+            if(t && (Date.now() - t) < TEAM_LOGO_MISSING_TTL) return 'missing';
+            return 'loading';
+        }
+        function isTeamLogoMissingKey(key) {
+            const t = teamLogoMissing.get(key);
+            return !!(t && (Date.now() - t) < TEAM_LOGO_MISSING_TTL);
+        }
+
+        // Pencocokan dari node 'teamLogos' penuh (hanya kalau sudah pernah diunduh).
+        function matchTeamLogoFromFullFallback(nama) {
+            const all = globalCache.__teamLogosFullFallback;
+            if(!all) return null;
+            const normalizedName = normalizeTeamLogoNameCustomer(nama);
+            const matchedKey = Object.keys(all).find(k => {
+                const entry = all[k];
+                const entryName = normalizeTeamLogoNameCustomer(entry?.normalizedNama || entry?.nama || '');
+                return entryName === normalizedName && String(entry?.logo || '').trim();
+            });
+            return matchedKey ? all[matchedKey] : null;
+        }
+
+        // Jaring pengaman untuk logo lama yang key-nya berbeda. DIJALANKAN SETELAH
+        // antrean selesai & di latar belakang, jadi tidak lagi menahan logo lain.
+        async function runTeamLogoLateFallback(missed) {
+            await ensureTeamLogoFullFallback();
+            missed.forEach(({ nama, key }) => {
+                const late = matchTeamLogoFromFullFallback(nama);
+                if(!late) return;
+                globalCache.teamLogos[key] = late;
+                teamLogoMissing.delete(key);
+                const cbs = teamLogoLateWaiters.get(key) || [];
+                teamLogoLateWaiters.delete(key);
+                cbs.forEach(cb => { try { cb(); } catch(e) {} });
+            });
+        }
+
         async function runTeamLogoQueue() {
             if(teamLogoQueueRunning) return;
             teamLogoQueueRunning = true;
             await __teamLogoGate;
+            const missed = [];
             while(teamLogoQueue.length) {
                 const { nama, key } = teamLogoQueue.shift();
                 teamLogoQueued.delete(key);
-                if(!globalCache.teamLogos[key]?.logo) {
+                let found = !!globalCache.teamLogos[key]?.logo;
+                if(!found) {
                     try {
                         const snap = await get(ref(db, 'teamLogos/' + key));
-                        if(snap.exists()) {
-                            globalCache.teamLogos[key] = snap.val();
-                        } else {
-                            await ensureTeamLogoFullFallback();
-                            const normalizedName = normalizeTeamLogoNameCustomer(nama);
-                            const all = globalCache.__teamLogosFullFallback || {};
-                            const matchedKey = Object.keys(all).find(k => {
-                                const entry = all[k];
-                                const entryName = normalizeTeamLogoNameCustomer(entry?.normalizedNama || entry?.nama || '');
-                                return entryName === normalizedName && String(entry?.logo || '').trim();
-                            });
-                            if(matchedKey) globalCache.teamLogos[key] = all[matchedKey];
+                        const val = snap.exists() ? snap.val() : null;
+                        if(val && String(val.logo || '').trim()) {
+                            globalCache.teamLogos[key] = val;
+                            found = true;
                         }
                     } catch(e) {}
+                    if(!found) {
+                        // Kalau node penuh sudah pernah diunduh, cocokkan langsung (instan).
+                        const late = matchTeamLogoFromFullFallback(nama);
+                        if(late) { globalCache.teamLogos[key] = late; found = true; }
+                    }
+                    if(!found) {
+                        // TIDAK ketemu: langsung tandai "tidak ada" — JANGAN menunggu
+                        // unduhan besar, supaya logo tim berikutnya tidak ikut tertahan.
+                        teamLogoMissing.set(key, Date.now());
+                        missed.push({ nama, key });
+                    }
                 }
                 const waiters = teamLogoWaiters.get(key) || [];
                 teamLogoWaiters.delete(key);
+                if(!found && waiters.length) {
+                    teamLogoLateWaiters.set(key, (teamLogoLateWaiters.get(key) || []).concat(waiters));
+                }
                 waiters.forEach(cb => { try { cb(); } catch(e) {} });
             }
             teamLogoQueueRunning = false;
+            if(missed.length) runTeamLogoLateFallback(missed);
         }
+
+        // ---- Tampilan placeholder logo: spinner berputar & stempel "logo tidak ada" ----
+        function logoSpinnerHtml() {
+            return '<span class="logo-loading-spinner" role="status" aria-label="Memuat logo"></span>';
+        }
+        function logoStampHtml() {
+            return '<svg class="logo-none-stamp" viewBox="0 0 100 100" role="img" aria-label="Logo tidak ada" xmlns="http://www.w3.org/2000/svg">'
+                + '<g transform="rotate(-14 50 50)">'
+                + '<circle cx="50" cy="50" r="45" fill="rgba(255,255,255,.88)" stroke="#b91c1c" stroke-width="4"/>'
+                + '<circle cx="50" cy="50" r="37.5" fill="none" stroke="#b91c1c" stroke-width="1.6" stroke-dasharray="3.2 2.6"/>'
+                + '<text x="50" y="43" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-weight="900" font-size="15" letter-spacing=".6" fill="#b91c1c">LOGO</text>'
+                + '<text x="50" y="59" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-weight="900" font-size="15" letter-spacing=".6" fill="#b91c1c">TIDAK</text>'
+                + '<text x="50" y="75" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-weight="900" font-size="15" letter-spacing=".6" fill="#b91c1c">ADA</text>'
+                + '</g></svg>';
+        }
+
+        // Jembatan untuk script poster (script klasik terpisah, tidak bisa akses fungsi module).
+        window.__sandagaTeamLogos = {
+            status: (name) => getTeamLogoStatus(name),
+            get: (name) => getCustomerTeamLogo(name),
+            request: (name, cb) => requestTeamLogo(name, cb),
+            stampHtml: () => logoStampHtml(),
+            spinnerHtml: () => logoSpinnerHtml()
+        };
 
         function requestTeamLogo(nama, onReady) {
             const key = getTeamLogoKeyCustomer(nama);
             if(!key) return;
             if(globalCache.teamLogos[key]?.logo) { if(onReady) onReady(); return; }
+            if(isTeamLogoMissingKey(key)) {
+                if(onReady) {
+                    if(!teamLogoLateWaiters.has(key)) teamLogoLateWaiters.set(key, []);
+                    teamLogoLateWaiters.get(key).push(onReady);
+                    try { onReady(); } catch(e) {}
+                }
+                return;
+            }
             if(onReady) {
                 if(!teamLogoWaiters.has(key)) teamLogoWaiters.set(key, []);
                 teamLogoWaiters.get(key).push(onReady);
@@ -8645,12 +8782,17 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
                 // satu lewat requestTeamLogo(). Begitu giliran tim ini
                 // selesai diambil, updateSingleCustomerMemberLogo() akan
                 // menimpa HANYA kartu ini, tanpa membangun ulang seluruh grid.
-                if(!logo) {
+                const logoStatus = logo ? 'found' : getTeamLogoStatus(item.nama);
+                if(!logo && logoStatus === 'loading') {
                     requestTeamLogo(item.nama, () => updateSingleCustomerMemberLogo(item));
                 }
+                // Belum ada & masih diambil -> spinner berputar. Kalau memang tidak ada
+                // logo, tetap pakai inisial seperti sebelumnya.
                 const logoHtml = logo
                     ? `<img src="${safeLogo}" alt="Logo ${nama}" loading="lazy" class="customer-member-logo-fade is-visible" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='grid';"><span class="customer-member-logo-fallback" style="display:none">${fallback}</span>`
-                    : `<span class="customer-member-logo-fallback">${fallback}</span>`;
+                    : (logoStatus === 'loading'
+                        ? logoSpinnerHtml()
+                        : `<span class="customer-member-logo-fallback">${fallback}</span>`);
                 return `<article class="customer-member-card">
                     <div class="customer-member-logo" data-team-key="${teamKey}">${logoHtml}</div>
                     <div class="customer-member-name">${nama}</div>
@@ -8674,11 +8816,16 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
             if(!holder || holder.querySelector('img')) return; // kartu tak ditemukan / logo sudah tampil
 
             const logo = getCustomerTeamLogo(item.nama) || logoToDataUrlCustomer(item.logo || item.logoTim || item.logoUrl || item.fotoLogo);
-            if(!logo) return;
-
             const nama = escapeHtmlCustomer(item.nama);
-            const safeLogo = escapeHtmlCustomer(logo);
             const fallback = escapeHtmlCustomer(initialsCustomer(item.nama));
+            if(!logo) {
+                // Pencarian selesai & logo tidak ada -> spinner diganti inisial.
+                if(isTeamLogoMissingKey(key) && holder.querySelector('.logo-loading-spinner')) {
+                    holder.innerHTML = `<span class="customer-member-logo-fallback">${fallback}</span>`;
+                }
+                return;
+            }
+            const safeLogo = escapeHtmlCustomer(logo);
             holder.innerHTML = `<img src="${safeLogo}" alt="Logo ${nama}" loading="lazy" class="customer-member-logo-fade" onload="this.classList.add('is-visible')" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='grid';"><span class="customer-member-logo-fallback" style="display:none">${fallback}</span>`;
         }
 
@@ -8701,23 +8848,28 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
 
             const entry = (globalCache.teamLogos || {})[key];
             const logo = logoToDataUrlCustomer(entry?.logo);
-            if(!logo) return;
-            const safeLogo = escapeHtmlCustomer(logo);
+            const missing = !logo && isTeamLogoMissingKey(key);
+            if(!logo && !missing) return; // belum selesai: spinner tetap berputar
 
             holders.forEach(holder => {
-                if(holder.querySelector('img')) return; // sudah tampil
-                const fallbackSpan = holder.querySelector('.sparing-final-logo-fallback');
-                const fallbackText = fallbackSpan ? fallbackSpan.textContent : '';
-                holder.innerHTML = `<img src="${safeLogo}" alt="Logo Tim" loading="lazy" class="customer-member-logo-fade" onload="this.classList.add('is-visible')" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='grid';"><span class="sparing-final-logo-fallback" style="display:none">${fallbackText}</span>`;
+                const state = holder.dataset.logoState;
+                if(state === 'found') return; // sudah tampil
 
-                // FIX: begitu logo tampil di kartu, langsung sinkronkan juga ke
-                // atribut data-mf-logo-a/data-mf-logo-b pada kartu pembungkus
-                // (.match-pending-trigger / .match-founded-trigger). Atribut inilah
-                // yang dibaca window.openMatchFoundedPoster() saat kartu diklik —
-                // tanpa langkah ini, poster baru ikut menampilkan logo setelah
-                // seluruh daftar sparring dirender ulang dari awal (nunggu snapshot
-                // Firebase berikutnya), sehingga terasa lambat walau di kartu logo
-                // sudah kelihatan.
+                // Logo TIDAK ADA -> ganti spinner dengan stempel.
+                if(!logo) {
+                    if(state === 'missing') return;
+                    holder.dataset.logoState = 'missing';
+                    holder.innerHTML = `<span class="logo-none-wrap">${logoStampHtml()}</span>`;
+                    return;
+                }
+
+                // Logo ADA (juga untuk logo yang baru ketemu belakangan) -> ganti spinner/stempel.
+                const safeLogo = escapeHtmlCustomer(logo);
+                holder.dataset.logoState = 'found';
+                holder.innerHTML = `<img src="${safeLogo}" alt="Logo Tim" loading="lazy" class="customer-member-logo-fade" onload="this.classList.add('is-visible')" onerror="this.onerror=null;var w=this.parentNode.querySelector('.logo-none-wrap');if(w)w.hidden=false;this.remove()"><span class="logo-none-wrap" hidden>${logoStampHtml()}</span>`;
+
+                // Sinkronkan juga ke atribut data-mf-logo-a/b pada kartu pembungkus,
+                // supaya poster (banner) yang dibuka dari kartu ini langsung memakai logo.
                 const cardEl = holder.closest('.match-pending-trigger, .match-founded-trigger');
                 if(cardEl){
                     if(getTeamLogoKeyCustomer(cardEl.dataset.mfTeamA || '') === key){
@@ -25133,17 +25285,42 @@ body:has(#page-customer-member:not(.hidden)) main {
   function fillTeam(logoBoxEl, nameEl, name, logoUrl){
     nameEl.textContent = name || 'TIM';
     logoBoxEl.innerHTML = '';
-    if(logoUrl){
-      var img = document.createElement('img');
-      img.src = logoUrl;
-      img.alt = 'Logo ' + (name || 'Tim');
-      img.onerror = function(){
-        logoBoxEl.innerHTML = '<div class="mf-fallback">' + initials(name) + '</div>';
-      };
-      logoBoxEl.appendChild(img);
-    } else {
-      logoBoxEl.innerHTML = '<div class="mf-fallback">' + initials(name) + '</div>';
+    // Token: kalau poster dibuka ulang untuk tim lain, hasil lama diabaikan.
+    var token = (logoBoxEl.__fillToken = (logoBoxEl.__fillToken || 0) + 1);
+    var bridge = window.__sandagaTeamLogos;
+
+    function stampBox(){
+      return '<div class="mf-logo-none">' + (bridge && bridge.stampHtml ? bridge.stampHtml() : '') + '</div>';
     }
+    function showStamp(){ logoBoxEl.innerHTML = stampBox(); }
+    function showImg(url){
+      logoBoxEl.innerHTML = '';
+      var img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Logo ' + (name || 'Tim');
+      img.onerror = function(){ showStamp(); };
+      logoBoxEl.appendChild(img);
+    }
+
+    if(logoUrl){ showImg(logoUrl); return; }
+
+    // Tidak ada logo di dataset kartu -> cek status di antrean logo.
+    var status = bridge ? bridge.status(name) : 'missing';
+    if(status === 'found'){
+      var u = bridge.get(name);
+      if(u){ showImg(u); return; }
+    }
+    if(status === 'loading'){
+      logoBoxEl.innerHTML = '<div class="mf-logo-loading">' + bridge.spinnerHtml() + '</div>';
+      bridge.request(name, function(){
+        if(logoBoxEl.__fillToken !== token) return;
+        var u2 = bridge.get(name);
+        if(u2) showImg(u2);
+        else if(bridge.status(name) === 'missing') showStamp();
+      });
+      return;
+    }
+    showStamp(); // sudah pasti tidak ada
   }
 
   window.openMatchFoundedPoster = function(data){
@@ -27473,4 +27650,41 @@ if ('serviceWorker' in navigator) {
   }
 })();
 </script>
+<style id="logo-loading-stamp-v1">
+/* ===== Spinner placeholder logo + stempel "LOGO TIDAK ADA" ===== */
+@keyframes logo-spin-rotate{to{transform:rotate(360deg)}}
+.logo-loading-spinner{
+  display:block;box-sizing:border-box;
+  width:46%;aspect-ratio:1/1;max-width:44px;min-width:24px;height:auto;
+  border-radius:50%;
+  border:4px solid rgba(255,255,255,.28);
+  border-top-color:#fff;
+  animation:logo-spin-rotate .8s linear infinite;
+  flex:0 0 auto;
+}
+/* Kartu member berlatar putih -> spinner biru */
+.customer-member-logo .logo-loading-spinner{
+  width:42px;height:42px;max-width:none;min-width:0;
+  border-color:rgba(37,99,235,.18);border-top-color:#2563eb;
+}
+/* Banner/poster -> spinner putih di atas gambar gelap */
+.mf-logo-loading{width:100%;height:100%;display:grid;place-items:center}
+.mf-logo-loading .logo-loading-spinner{width:44px;height:44px;max-width:none;border-width:5px}
+
+.logo-none-wrap{display:grid;place-items:center;width:100%;height:100%}
+.logo-none-wrap[hidden]{display:none !important}
+.logo-none-stamp{display:block;width:100%;height:100%;max-width:96px;max-height:96px;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.28));opacity:.95}
+
+/* Stempel di banner/poster — ukuran mengikuti .mf-fallback */
+#mf-poster .mf-team-logo .mf-logo-none{
+  width:82%;height:auto;max-height:100%;aspect-ratio:1/1;
+  display:grid;place-items:center;
+}
+#mf-poster .mf-team-logo .mf-logo-none .logo-none-stamp{width:100%;height:100%;max-width:none;max-height:none}
+
+@media (prefers-reduced-motion:reduce){
+  .logo-loading-spinner{animation-duration:1.6s}
+}
+</style>
 </body></html>

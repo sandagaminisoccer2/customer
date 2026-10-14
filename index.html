@@ -7908,30 +7908,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     globalCache.sparring[currentKey].matchedAt = Date.now();
                 }
 
-                // Beri tahu ADMIN: tulis catatan notifikasi ke Firebase (sparringNotifications).
-                // Web admin tinggal mendengarkan node ini. Dibuat "best effort": kalau gagal
-                // (mis. aturan database), pasangan sparring & WhatsApp tetap jalan normal.
-                // Ditunggu maksimal 3 detik karena halaman akan pindah ke WhatsApp.
-                try {
-                    await Promise.race([
-                        push(ref(db, 'sparringNotifications'), {
-                            type: 'sparring_matched',
-                            sparringKey: currentKey,
-                            timA: String(currentItem.timA || '').trim(),
-                            noHpA: phone,
-                            timB: namaBersih,
-                            noHpB: noHpBBersih,
-                            tanggal: String(currentItem.tanggal || ''),
-                            jam: String(currentItem.jam || ''),
-                            createdAt: Date.now(),
-                            read: false
-                        }),
-                        new Promise(resolve => setTimeout(resolve, 3000))
-                    ]);
-                } catch(notifError) {
-                    console.warn('Notifikasi admin sparring gagal dikirim:', notifError);
-                }
-
                 closeModal();
                 window.renderCustomerSparring();
 

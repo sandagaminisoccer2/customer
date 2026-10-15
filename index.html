@@ -8556,6 +8556,7 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
         // Callback yang sudah diberi tahu "tidak ada", tapi tetap dipanggil lagi
         // kalau pencarian cadangan di latar belakang akhirnya menemukan logonya.
         const teamLogoLateWaiters = new Map();
+        const teamLogoEverMissing = new Set();
 
         function getTeamLogoStatus(name) {
             const key = getTeamLogoKeyCustomer(name);
@@ -8563,6 +8564,9 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
             if(getCustomerTeamLogo(name)) return 'found';
             const t = teamLogoMissing.get(key);
             if(t && (Date.now() - t) < TEAM_LOGO_MISSING_TTL) return 'missing';
+            // Sudah pernah dipastikan tidak ada (walau TTL lewat) -> tetap 'missing',
+            // jangan kembali ke spinner. Pengambilan ulang tetap jalan di latar belakang.
+            if(teamLogoEverMissing.has(key)) return 'missing';
             return 'loading';
         }
         function isTeamLogoMissingKey(key) {
@@ -8625,6 +8629,7 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
                         // TIDAK ketemu: langsung tandai "tidak ada" — JANGAN menunggu
                         // unduhan besar, supaya logo tim berikutnya tidak ikut tertahan.
                         teamLogoMissing.set(key, Date.now());
+                        teamLogoEverMissing.add(key);
                         missed.push({ nama, key });
                     }
                 }
@@ -25289,7 +25294,15 @@ body:has(#page-customer-member:not(.hidden)) main {
       });
       return;
     }
-    showStamp(); // sudah pasti tidak ada
+    showStamp(); // sudah pasti tidak ada (sama dengan halaman Sparing)
+    // Tetap minta di latar belakang: kalau ternyata logo ketemu belakangan, ganti.
+    if(bridge && bridge.request){
+      bridge.request(name, function(){
+        if(logoBoxEl.__fillToken !== token) return;
+        var u3 = bridge.get(name);
+        if(u3) showImg(u3);
+      });
+    }
   }
 
   window.openMatchFoundedPoster = function(data){

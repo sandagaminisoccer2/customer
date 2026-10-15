@@ -7583,7 +7583,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 3) Masih diambil -> spinner berputar di placeholder, lalu antre ambil logo.
             //    Begitu selesai, HANYA kartu ini yang diperbarui (updateSingleSparringLogo).
             if(key && typeof requestTeamLogo==='function'){
-              requestTeamLogo(name, () => { if(typeof updateSingleSparringLogo==='function') updateSingleSparringLogo(key); });
+              requestTeamLogo(name, () => { if(typeof updateSingleSparringLogo==='function') updateSingleSparringLogo(key); }, 'sparring');
             }
             return `<div class="sparing-final-logo"${keyAttr} data-logo-state="loading">${logoSpinnerHtml()}</div>`;
           }
@@ -8535,7 +8535,25 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
         }
 
         const teamLogoWaiters = new Map();   // key -> [callback, ...]
-        const teamLogoQueue = [];            // antrian {nama,key} yang belum diproses
+        const teamLogoQueue = [];            // antrian {nama,key,groups} yang belum diproses
+        // PRIORITAS BERDASARKAN MENU YANG SEDANG DIBUKA:
+        // Setiap permintaan logo membawa "kelompok" asalnya: 'member', 'sparring',
+        // atau 'poster' (ketukan langsung dari customer). Saat giliran berikutnya
+        // dipilih, antrian TIDAK lagi murni FIFO, melainkan: poster dulu, lalu
+        // kelompok milik menu yang sedang terbuka, baru sisanya (prefetch).
+        function getActiveTeamLogoGroup() {
+            const isOpen = (id) => { const el = document.getElementById(id); return !!el && !el.classList.contains('hidden'); };
+            if(isOpen('page-customer-sparring')) return 'sparring';
+            if(isOpen('page-customer-member')) return 'member';
+            return null;
+        }
+        function takeNextTeamLogoJob() {
+            const active = getActiveTeamLogoGroup();
+            let idx = teamLogoQueue.findIndex(j => j.groups.has('poster'));
+            if(idx < 0 && active) idx = teamLogoQueue.findIndex(j => j.groups.has(active));
+            if(idx < 0) idx = 0;
+            return teamLogoQueue.splice(idx, 1)[0];
+        }
         const teamLogoQueued = new Set();    // cegah key yang sama masuk antrian dobel
         let teamLogoQueueRunning = false;
         let teamLogoFullFallbackPromise = null;
@@ -8614,7 +8632,7 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
             await __teamLogoGate;
             const missed = [];
             while(teamLogoQueue.length) {
-                const { nama, key } = teamLogoQueue.shift();
+                const { nama, key } = takeNextTeamLogoJob();
                 teamLogoQueued.delete(key);
                 let found = !!globalCache.teamLogos[key]?.logo;
                 if(!found) {
@@ -8662,12 +8680,12 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
         window.__sandagaTeamLogos = {
             status: (name) => getTeamLogoStatus(name),
             get: (name) => getCustomerTeamLogo(name),
-            request: (name, cb) => requestTeamLogo(name, cb),
+            request: (name, cb) => requestTeamLogo(name, cb, 'poster'),
             stampHtml: () => logoStampHtml(),
             spinnerHtml: () => logoSpinnerHtml()
         };
 
-        function requestTeamLogo(nama, onReady) {
+        function requestTeamLogo(nama, onReady, group = 'other') {
             const key = getTeamLogoKeyCustomer(nama);
             if(!key) return;
             if(globalCache.teamLogos[key]?.logo) { if(onReady) onReady(); return; }
@@ -8685,7 +8703,12 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
             }
             if(!teamLogoQueued.has(key)) {
                 teamLogoQueued.add(key);
-                teamLogoQueue.push({ nama, key });
+                teamLogoQueue.push({ nama, key, groups: new Set([group]) });
+            } else {
+                // Tim yang sama sudah mengantre dari kelompok lain -> cukup tambah kelompoknya,
+                // supaya ikut naik prioritas kalau menu ini yang sedang dibuka.
+                const queuedJob = teamLogoQueue.find(j => j.key === key);
+                if(queuedJob) queuedJob.groups.add(group);
             }
             runTeamLogoQueue();
         }
@@ -8764,7 +8787,7 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
                 // menimpa HANYA kartu ini, tanpa membangun ulang seluruh grid.
                 const logoStatus = logo ? 'found' : getTeamLogoStatus(item.nama);
                 if(!logo && logoStatus === 'loading') {
-                    requestTeamLogo(item.nama, () => updateSingleCustomerMemberLogo(item));
+                    requestTeamLogo(item.nama, () => updateSingleCustomerMemberLogo(item), 'member');
                 }
                 // Belum ada & masih diambil -> spinner berputar. Kalau memang tidak ada
                 // logo, tetap pakai inisial seperti sebelumnya.

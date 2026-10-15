@@ -6633,8 +6633,14 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 </div>
 <div class="customer-schedule-period-control">
   <label for="customer-filter-periode-jadwal">Periode Jadwal</label>
-  <select class="p-1.5 rounded-lg text-xs glass-input font-bold text-center" id="customer-filter-periode-jadwal" onchange="renderCustomerGridJadwal()">
+  <button type="button" class="cs-period-nav cs-period-prev" id="cs-periode-prev" onclick="csGeserPeriode(-1)" aria-label="Periode sebelumnya">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+  </button>
+  <select class="p-1.5 rounded-lg text-xs glass-input font-bold text-center" id="customer-filter-periode-jadwal" onchange="renderCustomerGridJadwal();csSyncPeriode()">
   </select>
+  <button type="button" class="cs-period-nav cs-period-next" id="cs-periode-next" onclick="csGeserPeriode(1)" aria-label="Periode berikutnya">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+  </button>
 </div>
 <div class="shadow-2xl rounded-xl border border-white/30 mb-4 overflow-hidden relative" id="booking-schedule-grid-wrap">
 <div class="customer-booking-schedule-periods" id="customer-booking-schedule-periods"></div>
@@ -27669,4 +27675,325 @@ if ('serviceWorker' in navigator) {
   .logo-loading-spinner{animation-duration:1.6s}
 }
 </style>
+
+<style id="customer-period-arrows-v1">
+/* Tombol panah kiri/kanan periode — disamakan dengan Booking Schedule admin. */
+html body #page-customer-schedule .customer-schedule-period-control{
+  position:relative !important;display:flex !important;align-items:center !important;justify-content:center !important;
+  width:100% !important;height:56px !important;margin:0 0 14px !important;padding:0 56px !important;border-radius:20px !important;
+  background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(220,234,255,.74)) !important;
+  border:1.5px solid rgba(255,255,255,.96) !important;
+  box-shadow:0 12px 28px rgba(4,18,52,.30),inset 0 1px 0 #fff !important;
+  -webkit-backdrop-filter:blur(14px) saturate(140%) !important;backdrop-filter:blur(14px) saturate(140%) !important;
+  box-sizing:border-box !important;
+}
+html body #page-customer-schedule .customer-schedule-period-control label{display:none !important;}
+html body #page-customer-schedule .customer-schedule-period-control .schedule-period-custom-trigger{
+  flex:1 1 auto !important;width:100% !important;height:100% !important;min-height:0 !important;margin:0 !important;padding:0 !important;
+  background:transparent !important;border:0 !important;box-shadow:none !important;animation:none !important;border-radius:0 !important;
+  font-size:clamp(10px,3.1vw,12.5px) !important;font-weight:900 !important;color:#0b2559 !important;-webkit-text-fill-color:#0b2559 !important;
+  white-space:nowrap !important;letter-spacing:0 !important;line-height:1.2 !important;
+  justify-content:center !important;text-align:center !important;
+}
+html body #page-customer-schedule .customer-schedule-period-control .schedule-period-custom-trigger::before,
+html body #page-customer-schedule .customer-schedule-period-control .schedule-period-custom-trigger::after{content:none !important;}
+html body #page-customer-schedule .cs-period-nav{
+  position:absolute;top:50%;transform:translateY(-50%);z-index:2;
+  width:44px;height:44px;border-radius:14px;border:0;padding:0;cursor:pointer;
+  display:grid;place-items:center;color:#fff;
+  background:linear-gradient(145deg,#1d4ed8,#38a1f5);
+  box-shadow:0 5px 12px rgba(29,78,216,.40),inset 0 1px 0 rgba(255,255,255,.45);
+  transition:transform .12s ease,opacity .12s ease;
+}
+html body #page-customer-schedule .cs-period-prev{left:9px;}
+html body #page-customer-schedule .cs-period-next{right:9px;}
+html body #page-customer-schedule .cs-period-nav:active{transform:translateY(-50%) scale(.92);}
+html body #page-customer-schedule .cs-period-nav:disabled{opacity:.35;cursor:default;box-shadow:none;}
+html body #page-customer-schedule .cs-period-nav:focus-visible{outline:3px solid rgba(255,255,255,.95);outline-offset:2px;}
+</style>
+<script id="customer-period-arrows-v1-script">
+(function(){
+  function sel(){ return document.getElementById('customer-filter-periode-jadwal'); }
+  function usable(o){ return o && !o.disabled; }
+  function target(s,step){
+    for(var i=s.selectedIndex+step;i>=0&&i<s.options.length;i+=step){ if(usable(s.options[i])) return i; }
+    return -1;
+  }
+  function sync(){
+    var s=sel(); if(!s) return;
+    var p=document.getElementById('cs-periode-prev'), n=document.getElementById('cs-periode-next');
+    if(p) p.disabled = target(s,-1)<0;
+    if(n) n.disabled = target(s,1)<0;
+  }
+  window.csSyncPeriode=sync;
+  window.csGeserPeriode=function(step){
+    var s=sel(); if(!s) return;
+    var i=target(s,step); if(i<0) return;
+    s.selectedIndex=i;
+    s.dispatchEvent(new Event('change',{bubbles:true}));
+  };
+  function start(){
+    sync();
+    var s=sel();
+    if(s && window.MutationObserver) new MutationObserver(sync).observe(s,{childList:true});
+    setTimeout(sync,300); setTimeout(sync,900);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
+})();
+</script>
+
+<style id="customer-edge-fade-v1">
+/* =========================================================
+   PERPOTONGAN HALUS — semua menu
+   1) Halaman: strip tipis di bawah Header & di atas Dock yang
+      "melebur" ke latar, sehingga card terpotong halus.
+   2) Elemen yang bisa di-scroll (list, tabel, popup): ujung
+      atas/bawah/kiri/kanan memudar hanya bila masih ada isi
+      di arah tersebut.
+   ========================================================= */
+.edge-fade{
+  position:fixed;left:0;width:100%;pointer-events:none;overflow:hidden;
+  opacity:0;transition:opacity .18s ease;contain:strict;
+}
+.edge-fade>i{position:absolute;left:0;top:var(--ef-off,0px);width:var(--ef-vw,100vw);height:var(--ef-vh,100vh);background-repeat:no-repeat}
+#edge-fade-top{
+  top:var(--ef-ht,0px);z-index:900;height:calc(var(--ef-hs,0px) + 34px);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0,#000 var(--ef-hs,0px),transparent 100%);
+          mask-image:linear-gradient(to bottom,#000 0,#000 var(--ef-hs,0px),transparent 100%);
+}
+#edge-fade-bottom{
+  top:var(--ef-bt,0px);z-index:900;height:var(--ef-bh,0px);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 28px,#000 100%);
+          mask-image:linear-gradient(to bottom,transparent 0,#000 28px,#000 100%);
+}
+
+.ef-scroll{
+  -webkit-mask-image:
+    linear-gradient(to bottom,transparent 0,#000 var(--ef-t,0px),#000 calc(100% - var(--ef-b,0px)),transparent 100%),
+    linear-gradient(to right,transparent 0,#000 var(--ef-l,0px),#000 calc(100% - var(--ef-r,0px)),transparent 100%);
+  -webkit-mask-composite:source-in;
+          mask-image:
+    linear-gradient(to bottom,transparent 0,#000 var(--ef-t,0px),#000 calc(100% - var(--ef-b,0px)),transparent 100%),
+    linear-gradient(to right,transparent 0,#000 var(--ef-l,0px),#000 calc(100% - var(--ef-r,0px)),transparent 100%);
+          mask-composite:intersect;
+}
+</style>
+<script id="customer-edge-fade-v1-js">
+(function(){
+  var FADE=18;
+  var topEl,botEl,lastKey='';
+  function mk(id){
+    var d=document.createElement('div');
+    d.id=id;d.className='edge-fade';d.setAttribute('aria-hidden','true');
+    d.appendChild(document.createElement('i'));
+    document.body.appendChild(d);
+    return d;
+  }
+  function pageScroller(){
+    var b=document.body,de=document.documentElement;
+    if(b.scrollHeight>b.clientHeight+2){
+      var oy=getComputedStyle(b).overflowY;
+      if((oy==='auto'||oy==='scroll')&&b.clientHeight<de.clientHeight+2) return b;
+    }
+    return document.scrollingElement||de;
+  }
+  function updatePage(){
+    if(!topEl||!botEl) return;
+    var h=null; /* customer: header ikut scroll, jadi potongan atas di tepi layar */
+    var d=document.getElementById('customer-bottom-nav');
+    var vw=document.documentElement.clientWidth, vh=window.innerHeight;
+    var root=document.documentElement.style;
+    var skip=false;
+
+    var hb=0, hs=14;
+    /* Header card customer (sticky/fixed): potongan dimulai tepat di bawahnya. */
+    var heads=document.querySelectorAll('[class*="page-head"],[class*="booking-header"],[class*="member-style-head"]');
+    for(var k=0;k<heads.length;k++){
+      var he=heads[k];
+      if(he.offsetParent===null&&getComputedStyle(he).position!=='fixed') continue;
+      var hcs=getComputedStyle(he);
+      if(hcs.position!=='sticky'&&hcs.position!=='fixed') continue;
+      var hr=he.getBoundingClientRect();
+      if(hr.height>20&&hr.bottom>0&&hr.top<vh/2){ hb=Math.max(hb,Math.round(hr.bottom)); hs=0; }
+    }
+    var dr=d?d.getBoundingClientRect():null;
+    var dockOk=!!(dr&&dr.height>10&&getComputedStyle(d).display!=='none');
+    var bt=dockOk?Math.max(0,Math.round(dr.top)-28):vh;
+    var bh=Math.max(0,vh-bt);
+
+    var cs=getComputedStyle(document.body,'::before');
+    var bgi=cs.backgroundImage,bgs=cs.backgroundSize,bgp=cs.backgroundPosition,bgc=cs.backgroundColor;
+    var key=[vw,vh,hb,hs,bt,bgi,bgs,bgp,bgc].join('|');
+    if(key!==lastKey){
+      lastKey=key;
+      root.setProperty('--ef-vw',vw+'px');root.setProperty('--ef-vh',vh+'px');
+      root.setProperty('--ef-hb',hb+'px');root.setProperty('--ef-ht',hb+'px');root.setProperty('--ef-hs',hs+'px');
+      root.setProperty('--ef-bt',bt+'px');root.setProperty('--ef-bh',bh+'px');
+      var ti=topEl.firstChild,bi=botEl.firstChild;
+      [ti,bi].forEach(function(i){
+        i.style.backgroundImage=bgi;i.style.backgroundSize=bgs;
+        i.style.backgroundPosition=bgp;i.style.backgroundColor=(bgc&&bgc!=='rgba(0, 0, 0, 0)')?bgc:'#eef6ff';
+      });
+      ti.style.setProperty('--ef-off',(-hb)+'px');
+      bi.style.setProperty('--ef-off',(-bt)+'px');
+    }
+
+    var sc=pageScroller();
+    var st=sc.scrollTop||0;
+    var ch=(sc===document.scrollingElement||sc===document.documentElement)?vh:sc.clientHeight;
+    var maxS=sc.scrollHeight-ch;
+    topEl.style.opacity=(skip||st<=1)?'0':String(Math.min(1,st/28));
+    botEl.style.opacity=(skip||!dockOk||maxS<=1)?'0':String(Math.max(0,Math.min(1,(maxS-st)/28)));
+  }
+
+  /* ---------- Elemen scroll internal ---------- */
+  function skipEl(el,cs,vw,vh){
+    if(el===document.body||el===document.documentElement) return true;
+    var tag=el.tagName;
+    if(tag==='MAIN'||tag==='HEADER'||tag==='TEXTAREA'||tag==='SELECT'||tag==='INPUT'||tag==='HTML'||tag==='BODY') return true;
+    if(el.id==='customer-bottom-nav'||el.classList.contains('edge-fade')) return true;
+    if(el.closest&&el.closest('#customer-bottom-nav,.edge-fade')) return true;
+    var r=el.getBoundingClientRect();
+    if(r.height<40||r.width<40) return true;
+    if(cs.position==='fixed'&&r.width>=vw*0.95&&r.height>=vh*0.95) return true;
+    return false;
+  }
+  function updateEl(el){
+    var st=el.scrollTop,sl=el.scrollLeft;
+    var mv=el.scrollHeight-el.clientHeight, mh=el.scrollWidth-el.clientWidth;
+    var t=(mv>2&&st>1)?FADE:0;
+    var b=(mv>2&&st<mv-1)?FADE:0;
+    var l=(mh>2&&sl>1)?FADE:0;
+    var r=(mh>2&&sl<mh-1)?FADE:0;
+    var s=el.style;
+    s.setProperty('--ef-t',t+'px');s.setProperty('--ef-b',b+'px');
+    s.setProperty('--ef-l',l+'px');s.setProperty('--ef-r',r+'px');
+  }
+  function scan(){
+    var vw=document.documentElement.clientWidth,vh=window.innerHeight;
+    var all=document.body.getElementsByTagName('*');
+    for(var i=0;i<all.length;i++){
+      var el=all[i];
+      var canV=el.scrollHeight>el.clientHeight+2, canH=el.scrollWidth>el.clientWidth+2;
+      if(!canV&&!canH){
+        if(el.classList.contains('ef-scroll')) el.classList.remove('ef-scroll');
+        continue;
+      }
+      var cs=getComputedStyle(el);
+      var oy=cs.overflowY,ox=cs.overflowX;
+      var sv=canV&&(oy==='auto'||oy==='scroll'), sh=canH&&(ox==='auto'||ox==='scroll');
+      if(!(sv||sh)||skipEl(el,cs,vw,vh)){
+        if(el.classList.contains('ef-scroll')) el.classList.remove('ef-scroll');
+        continue;
+      }
+      if(cs.maskImage&&cs.maskImage!=='none'&&!el.classList.contains('ef-scroll')) continue;
+      if(!el.classList.contains('ef-scroll')) el.classList.add('ef-scroll');
+      updateEl(el);
+    }
+  }
+  var scanT=null;
+  function scheduleScan(){
+    if(scanT) return;
+    scanT=setTimeout(function(){scanT=null;try{scan();}catch(e){}},350);
+  }
+
+  function start(){
+    topEl=mk('edge-fade-top');botEl=mk('edge-fade-bottom');
+    updatePage();scan();
+    var raf=0;
+    function onScroll(e){
+      var t=e.target;
+      if(t&&t.nodeType===1&&t!==document.body&&t!==document.documentElement&&t.classList.contains('ef-scroll')){
+        updateEl(t);return;
+      }
+      if(raf) return;
+      raf=requestAnimationFrame(function(){raf=0;updatePage();});
+    }
+    document.addEventListener('scroll',onScroll,true);
+    window.addEventListener('resize',function(){lastKey='';updatePage();scheduleScan();});
+    window.addEventListener('orientationchange',function(){lastKey='';updatePage();scheduleScan();});
+    if(window.MutationObserver){
+      new MutationObserver(function(){scheduleScan();requestAnimationFrame(updatePage);})
+        .observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','data-member-section','hidden']});
+    }
+    setInterval(function(){updatePage();},500);
+    setInterval(scheduleScan,2500);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
+})();
+</script>
+
+
+<style id="customer-solid-header-v1">
+/* HEADER SOLID — semua menu customer (Booking, Sparing, Member, Jadwal, Harga) */
+html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
+  background:linear-gradient(135deg,#ffffff 0%,#e4f0ff 100%) !important;
+  background-image:linear-gradient(135deg,#ffffff 0%,#e4f0ff 100%) !important;
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+  border:1px solid #ffffff !important;
+  border-radius:22px !important;
+  box-shadow:0 10px 26px rgba(2,6,23,.22) !important;
+  overflow:hidden !important;
+  opacity:1 !important;
+}
+html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header)::before{
+  background:linear-gradient(180deg,rgba(255,255,255,.55),transparent 55%) !important;
+}
+/* Penutup celah: area di atas & di sudut bawah header yang tadinya "bocor" */
+#head-mask{
+  position:fixed;left:0;top:0;width:100%;height:0;overflow:hidden;
+  pointer-events:none;z-index:9000;opacity:0;contain:strict;
+}
+#head-mask>i{position:absolute;left:0;top:0;width:var(--hm-vw,100vw);height:var(--hm-vh,100vh);background-repeat:no-repeat}
+</style>
+<script id="customer-solid-header-v1-js">
+(function(){
+  var SEL='#page-customer-booking .customer-booking-page-head,#page-customer-sparring .customer-booking-page-head,#page-customer-member .customer-member-page-head,#page-customer-schedule .customer-member-page-head,#page-customer-price .customer-booking-page-head';
+  var mask,inner,lastKey='';
+  function activeHead(){
+    var list=document.querySelectorAll(SEL),vh=window.innerHeight;
+    for(var i=0;i<list.length;i++){
+      var el=list[i];
+      var page=el.closest('.customer-content-page,.sub-menu-modern,[id^="page-customer-"]');
+      if(page&&page.classList.contains('hidden')) continue;
+      var cs=getComputedStyle(el);
+      if(cs.display==='none'||cs.visibility==='hidden') continue;
+      if(cs.position!=='sticky'&&cs.position!=='fixed') continue;
+      var r=el.getBoundingClientRect();
+      if(r.height>20&&r.bottom>0&&r.top<vh/2) return r;
+    }
+    return null;
+  }
+  function update(){
+    if(!mask) return;
+    var r=activeHead();
+    if(!r){mask.style.opacity='0';return;}
+    var cs=getComputedStyle(document.body,'::before');
+    var bgi=cs.backgroundImage,bgs=cs.backgroundSize,bgp=cs.backgroundPosition,bgc=cs.backgroundColor;
+    var vw=document.documentElement.clientWidth,vh=window.innerHeight;
+    var h=Math.round(r.bottom);
+    var key=[vw,vh,h,bgi,bgs,bgp,bgc].join('|');
+    if(key!==lastKey){
+      lastKey=key;
+      mask.style.height=h+'px';
+      mask.style.setProperty('--hm-vw',vw+'px');mask.style.setProperty('--hm-vh',vh+'px');
+      inner.style.backgroundImage=bgi;inner.style.backgroundSize=bgs;inner.style.backgroundPosition=bgp;
+      inner.style.backgroundColor=(bgc&&bgc!=='rgba(0, 0, 0, 0)')?bgc:'#0b2a5b';
+    }
+    mask.style.opacity='1';
+  }
+  function start(){
+    mask=document.createElement('div');mask.id='head-mask';mask.setAttribute('aria-hidden','true');
+    inner=document.createElement('i');mask.appendChild(inner);document.body.appendChild(mask);
+    var raf=0;
+    function sched(){if(raf)return;raf=requestAnimationFrame(function(){raf=0;update();});}
+    document.addEventListener('scroll',sched,true);
+    window.addEventListener('resize',function(){lastKey='';sched();});
+    if(window.MutationObserver) new MutationObserver(sched).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class','style','hidden']});
+    setInterval(update,400);update();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
+})();
+</script>
 </body></html>

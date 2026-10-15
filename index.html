@@ -8644,14 +8644,7 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
             return '<span class="logo-loading-spinner" role="status" aria-label="Memuat logo"></span>';
         }
         function logoStampHtml() {
-            return '<svg class="logo-none-stamp" viewBox="0 0 100 100" role="img" aria-label="Logo tidak ada" xmlns="http://www.w3.org/2000/svg">'
-                + '<g transform="rotate(-14 50 50)">'
-                + '<circle cx="50" cy="50" r="45" fill="rgba(255,255,255,.88)" stroke="#b91c1c" stroke-width="4"/>'
-                + '<circle cx="50" cy="50" r="37.5" fill="none" stroke="#b91c1c" stroke-width="1.6" stroke-dasharray="3.2 2.6"/>'
-                + '<text x="50" y="43" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-weight="900" font-size="15" letter-spacing=".6" fill="#b91c1c">LOGO</text>'
-                + '<text x="50" y="59" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-weight="900" font-size="15" letter-spacing=".6" fill="#b91c1c">TIDAK</text>'
-                + '<text x="50" y="75" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-weight="900" font-size="15" letter-spacing=".6" fill="#b91c1c">ADA</text>'
-                + '</g></svg>';
+            return '<img class="logo-none-stamp" src="logokosong.png" alt="Logo tidak ada" draggable="false">';
         }
 
         // Jembatan untuk script poster (script klasik terpisah, tidak bisa akses fungsi module).
@@ -27649,7 +27642,7 @@ if ('serviceWorker' in navigator) {
 
 .logo-none-wrap{display:grid;place-items:center;width:100%;height:100%}
 .logo-none-wrap[hidden]{display:none !important}
-.logo-none-stamp{display:block;width:100%;height:100%;max-width:96px;max-height:96px;
+.logo-none-stamp{display:block;width:100%;height:100%;max-width:96px;max-height:96px;object-fit:contain;
   filter:drop-shadow(0 4px 8px rgba(0,0,0,.28));opacity:.95}
 
 /* Stempel di banner/poster — ukuran mengikuti .mf-fallback */

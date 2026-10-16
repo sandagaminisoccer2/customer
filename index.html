@@ -8697,6 +8697,13 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
             const key = getTeamLogoKeyCustomer(nama);
             if(!key) return;
             if(globalCache.teamLogos[key]?.logo) { if(onReady) onReady(); return; }
+            // LOGO HANYA DIMINTA OLEH MENU YANG SEDANG DIBUKA:
+            // permintaan bersumber 'member'/'sparring' diabaikan kalau menu itu
+            // bukan menu aktif (mis. data member baru tiba saat user ada di
+            // Sparing). Begitu menu dibuka, showPage() merender ulang dan logo
+            // menu itu baru diminta — jadi yang pertama masuk antrian selalu
+            // logo menu yang sedang tampil.
+            if(source && getActiveLogoSource() !== source) return;
             if(isTeamLogoMissingKey(key)) {
                 if(onReady) {
                     if(!teamLogoLateWaiters.has(key)) teamLogoLateWaiters.set(key, []);

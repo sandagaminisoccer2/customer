@@ -28033,4 +28033,25 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
 })();
 </script>
+<style id="desktop-menu-header-sticky-fix">
+/* DESKTOP SAJA (HP tidak diubah): kartu header Harga/Member/Booking/Sparing/Jadwal
+   tetap menempel di atas saat scroll dan teksnya berwarna gelap (sebelumnya putih di atas latar putih). */
+@media (min-width:641px){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price){
+    overflow:visible !important;
+  }
+  html body:not(#_a):not(#_b):not(#_c){ overflow-x:clip !important; overflow-y:visible !important; }
+  html body:not(#_a) main{ overflow:visible !important; }
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
+    position:sticky !important;
+    top:16px !important;
+    z-index:9990 !important;
+    isolation:isolate !important;
+  }
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) :is(h1,h2,h3,p,span){
+    color:#132a5e !important;
+    text-shadow:none !important;
+  }
+}
+</style>
 </body></html>

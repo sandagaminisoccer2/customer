@@ -25255,12 +25255,9 @@ body:has(#page-customer-member:not(.hidden)) main {
     </div>
   </div>
     <!-- Panel slider atur logo (menempel di dasar layar, hanya tampil saat poster belum diperbesar) -->
-    <div id="mf-adjust" role="group" aria-label="Atur logo poster">
-      <div class="mfa-tabs">
-        <button type="button" class="mfa-tab is-active" data-team="a">Logo Tim 1</button>
-        <button type="button" class="mfa-tab" data-team="b">Logo Tim 2</button>
-      </div>
-      <label class="mfa-row"><span class="mfa-label">Ukuran</span><input type="range" id="mfa-s" data-k="s" min="40" max="200" step="1" value="100"><output id="mfa-s-v">100%</output></label>
+    <div id="mf-adjust" role="group" aria-label="Atur posisi elemen poster">
+      <div class="mfa-pick"><span class="mfa-label">Atur</span><button type="button" id="mfa-target-btn" class="mfa-select" aria-haspopup="dialog" aria-expanded="false" aria-label="Pilih elemen poster"><span id="mfa-target-label">Logo Tim 1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+      <label class="mfa-row" id="mfa-row-s"><span class="mfa-label">Ukuran</span><input type="range" id="mfa-s" data-k="s" min="40" max="200" step="1" value="100"><output id="mfa-s-v">100%</output></label>
       <label class="mfa-row"><span class="mfa-label">Geser ↔</span><input type="range" id="mfa-x" data-k="x" min="-80" max="80" step="1" value="0"><output id="mfa-x-v">0</output></label>
       <label class="mfa-row"><span class="mfa-label">Geser ↕</span><input type="range" id="mfa-y" data-k="y" min="-80" max="80" step="1" value="0"><output id="mfa-y-v">0</output></label>
       <div class="mfa-foot"><span id="mfa-status">Tersimpan otomatis</span><button type="button" id="mfa-reset">Reset</button></div>
@@ -27750,15 +27747,23 @@ if ('serviceWorker' in navigator) {
 </style>
 
 <style id="mf-logo-adjust-style">
-/* ===== Atur posisi & ukuran logo poster (Sparing & Founded) =====
-   Nilai dari slider masuk lewat CSS variable di #mf-poster. Ukuran memakai
-   scale, geser memakai translate (px) — ikut membesar bersama poster saat
-   mode layar penuh karena poster diperbesar dengan transform. */
+/* ===== Atur posisi & ukuran elemen poster (Sparing & Founded) =====
+   Logo: ukuran (scale) + geser (translate). Nama tim, hari, tanggal, nomor WA:
+   hanya geser, memakai properti `translate` yang terpisah dari transform
+   bawaan masing-masing elemen, jadi posisi awal tidak berubah. Nilai masuk
+   lewat CSS variable di #mf-poster; ikut membesar bersama poster saat layar
+   penuh karena poster diperbesar dengan transform. */
 #mf-poster{--mf-a-s:1;--mf-a-x:0px;--mf-a-y:0px;--mf-b-s:1;--mf-b-x:0px;--mf-b-y:0px}
 #mf-poster.mf-pending .mf-team-home .mf-team-logo{transform:translate(var(--mf-a-x),var(--mf-a-y)) scale(var(--mf-a-s)) !important}
 #mf-poster.mf-pending .mf-team-away .mf-team-logo{transform:translate(var(--mf-b-x),var(--mf-b-y)) scale(var(--mf-b-s)) !important}
 #mf-poster:not(.mf-pending) .mf-team-home .mf-team-logo{transform:translate(calc(24px + var(--mf-a-x)),calc(27px + var(--mf-a-y))) scale(var(--mf-a-s)) !important}
 #mf-poster:not(.mf-pending) .mf-team-away .mf-team-logo{transform:translate(calc(24px + var(--mf-b-x)),calc(27px + var(--mf-b-y))) scale(var(--mf-b-s)) !important}
+#mf-name-a{translate:var(--mf-na-x,0px) var(--mf-na-y,0px)}
+#mf-name-b{translate:var(--mf-nb-x,0px) var(--mf-nb-y,0px)}
+#mf-day{translate:var(--mf-day-x,0px) var(--mf-day-y,0px)}
+#mf-date{translate:var(--mf-date-x,0px) var(--mf-date-y,0px)}
+#mf-time{translate:var(--mf-time-x,0px) var(--mf-time-y,0px)}
+#mf-team-contact{translate:var(--mf-wa-x,0px) var(--mf-wa-y,0px)}
 
 /* Panel menempel di dasar layar; poster mengecil otomatis (scale) supaya
    poster + panel selalu muat tanpa scroll. Tinggi ruang panel diisi lewat
@@ -27780,14 +27785,42 @@ if ('serviceWorker' in navigator) {
   box-shadow:0 10px 26px rgba(0,0,0,.35);
 }
 @media (max-width:380px){#mf-adjust{width:96vw}}
-#mf-adjust .mfa-tabs{display:flex;gap:6px;margin-bottom:6px}
-#mf-adjust .mfa-tab{
-  flex:1;padding:6px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.22);
-  background:rgba(255,255,255,.08);color:#e2e8f0;font-size:.7rem;font-weight:800;cursor:pointer;
+#mf-adjust .mfa-pick{display:grid;grid-template-columns:64px 1fr;align-items:center;gap:8px;margin-bottom:4px}
+#mf-adjust .mfa-select{
+  width:100%;height:32px;padding:0 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;
+  border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);
+  color:#fff;font-size:.74rem;font-weight:800;font-family:inherit;text-align:left;cursor:pointer;
 }
-#mf-adjust .mfa-tab.is-active{background:#fff;color:#0f172a;border-color:#fff}
-#mf-adjust.mfa-single .mfa-tab[data-team="b"]{display:none}
+#mf-adjust .mfa-select svg{width:14px;height:14px;flex:0 0 auto;opacity:.85}
+
+/* Pop-up pilih elemen — gaya disamakan dengan kalender booking (bukan dropdown bawaan HP/Windows) */
+.mfa-picker{
+  position:fixed;inset:0;z-index:5;display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(15,23,42,.38);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.mfa-picker.is-open{display:flex}
+.mfa-dialog{
+  width:min(100%,340px);max-height:min(82vh,620px);overflow:auto;box-sizing:border-box;
+  background:rgba(255,255,255,.96);border:1px solid rgba(255,255,255,.9);border-radius:24px;
+  box-shadow:0 24px 70px rgba(15,23,42,.28);padding:18px;animation:mfaPickIn .18s ease-out;
+  font-family:'Plus Jakarta Sans','Poppins',Arial,sans-serif;
+}
+.mfa-dialog-title{margin:0 0 14px;text-align:center;color:#163d2b;font-size:.95rem;font-weight:900}
+.mfa-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mfa-opt{
+  min-height:46px;padding:8px 10px;border:1px solid rgba(148,163,184,.18);border-radius:12px;
+  background:rgba(248,250,252,.92);color:#163d2b;font-size:.78rem;font-weight:800;font-family:inherit;cursor:pointer;
+}
+.mfa-opt:last-child:nth-child(odd){grid-column:1/-1}
+.mfa-opt:hover,.mfa-opt:focus{background:rgba(220,252,231,.95);border-color:rgba(34,197,94,.35);outline:0}
+.mfa-opt.is-selected{background:#163d2b;color:#fff;border-color:#163d2b}
+.mfa-close{
+  width:100%;margin-top:14px;min-height:44px;border:0;border-radius:13px;
+  background:rgba(22,61,43,.08);color:#163d2b;font-weight:900;font-family:inherit;cursor:pointer;
+}
+@keyframes mfaPickIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
 #mf-adjust .mfa-row{display:grid;grid-template-columns:64px 1fr 44px;align-items:center;gap:8px;margin:5px 0;cursor:default}
+#mf-adjust .mfa-row.is-off{opacity:.35}
 #mf-adjust .mfa-label{font-size:.68rem;font-weight:800;color:#cbd5e1}
 #mf-adjust output{font-size:.66rem;font-weight:800;text-align:right;color:#fde68a;font-variant-numeric:tabular-nums}
 #mf-adjust input[type=range]{width:100%;margin:0;accent-color:#fbbf24;height:26px;touch-action:pan-y}
@@ -27802,20 +27835,35 @@ if ('serviceWorker' in navigator) {
 <script id="mf-logo-adjust-script">
 (function(){
   'use strict';
-  var KEY = 'sandaga_mf_logo_adjust_v1';
+  var KEY = 'sandaga_mf_logo_adjust_v1';   // kunci sama: pengaturan logo lama tetap terbaca
   var overlay = document.getElementById('mf-overlay');
   var poster  = document.getElementById('mf-poster');
   var panel   = document.getElementById('mf-adjust');
   if(!overlay || !poster || !panel) return;
 
+  /* Elemen yang bisa diatur. 'only' = hanya tampil di jenis poster tsb.
+     Poster Sparing: logo Tim 2 kosong ("TIMMU?"); Poster Founded: nomor WA tidak ada. */
+  var TARGETS = [
+    {k:'a',    label:'Logo Tim 1', logo:true},
+    {k:'b',    label:'Logo Tim 2', logo:true, only:'founded'},
+    {k:'na',   label:'Nama Tim 1'},
+    {k:'nb',   label:'Nama Tim 2'},
+    {k:'day',  label:'Hari'},
+    {k:'date', label:'Tanggal'},
+    {k:'time', label:'Jam'},
+    {k:'wa',   label:'Nomor WA', only:'pending'}
+  ];
+  var LIM_LOGO = 80, LIM_TEXT = 150;
+
   var store = load();
   var cur = 'a';
   var els = {
+    sel: document.getElementById('mfa-target-btn'), selLabel: document.getElementById('mfa-target-label'),
+    rowS: document.getElementById('mfa-row-s'),
     s: document.getElementById('mfa-s'), x: document.getElementById('mfa-x'), y: document.getElementById('mfa-y'),
     sv: document.getElementById('mfa-s-v'), xv: document.getElementById('mfa-x-v'), yv: document.getElementById('mfa-y-v'),
     status: document.getElementById('mfa-status'), reset: document.getElementById('mfa-reset')
   };
-  var tabs = panel.querySelectorAll('.mfa-tab');
 
   function load(){
     try{ var r = localStorage.getItem(KEY); var o = r ? JSON.parse(r) : {}; return (o && typeof o === 'object') ? o : {}; }
@@ -27827,36 +27875,94 @@ if ('serviceWorker' in navigator) {
   }
   function clamp(v, d, min, max){ v = parseFloat(v); if(!isFinite(v)) return d; return Math.min(max, Math.max(min, v)); }
   function mode(){ return poster.classList.contains('mf-pending') ? 'pending' : 'founded'; }
-  function get(m, t){
-    var o = (store[m] && store[m][t]) || {};
-    return { s: clamp(o.s, 100, 40, 200), x: clamp(o.x, 0, -80, 80), y: clamp(o.y, 0, -80, 80) };
+  function def(k){ for(var i=0;i<TARGETS.length;i++){ if(TARGETS[i].k === k) return TARGETS[i]; } return TARGETS[0]; }
+  function available(){ var m = mode(); return TARGETS.filter(function(t){ return !t.only || t.only === m; }); }
+  function lim(k){ return def(k).logo ? LIM_LOGO : LIM_TEXT; }
+  function get(m, k){
+    var o = (store[m] && store[m][k]) || {}, L = lim(k);
+    return { s: clamp(o.s, 100, 40, 200), x: clamp(o.x, 0, -L, L), y: clamp(o.y, 0, -L, L) };
   }
 
-  /* Pasang nilai tersimpan (sesuai jenis poster) ke kedua logo. */
+  /* Pasang nilai tersimpan (sesuai jenis poster) ke semua elemen. */
   function apply(){
     var m = mode();
-    ['a','b'].forEach(function(t){
-      var v = get(m, t);
-      poster.style.setProperty('--mf-' + t + '-s', v.s / 100);
-      poster.style.setProperty('--mf-' + t + '-x', v.x + 'px');
-      poster.style.setProperty('--mf-' + t + '-y', v.y + 'px');
+    TARGETS.forEach(function(t){
+      var v = get(m, t.k);
+      if(t.logo) poster.style.setProperty('--mf-' + t.k + '-s', v.s / 100);
+      poster.style.setProperty('--mf-' + t.k + '-x', v.x + 'px');
+      poster.style.setProperty('--mf-' + t.k + '-y', v.y + 'px');
     });
   }
 
-  function syncSliders(){
-    var v = get(mode(), cur);
-    els.s.value = v.s; els.x.value = v.x; els.y.value = v.y;
-    els.sv.textContent = v.s + '%'; els.xv.textContent = v.x; els.yv.textContent = v.y;
-    Array.prototype.forEach.call(tabs, function(b){ b.classList.toggle('is-active', b.getAttribute('data-team') === cur); });
+  var picker = null, pickerGrid = null;
+  function updateLabel(){ els.selLabel.textContent = def(cur).label; }
+  function ensurePicker(){
+    if(picker) return;
+    picker = document.createElement('div');
+    picker.id = 'mfa-picker';
+    picker.className = 'mfa-picker';
+    picker.innerHTML =
+      '<div class="mfa-dialog" role="dialog" aria-modal="true" aria-label="Pilih elemen poster">' +
+        '<h3 class="mfa-dialog-title">Pilih Elemen Poster</h3>' +
+        '<div class="mfa-grid" id="mfa-grid"></div>' +
+        '<button type="button" class="mfa-close" id="mfa-close">Tutup</button>' +
+      '</div>';
+    overlay.appendChild(picker);
+    pickerGrid = picker.querySelector('#mfa-grid');
+    // Klik di dalam pop-up tidak boleh menutup poster; klik latar / Tutup menutup pop-up saja.
+    picker.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(e.target === picker || e.target.id === 'mfa-close') closePicker();
+    });
+    pickerGrid.addEventListener('click', function(e){
+      var b = e.target.closest ? e.target.closest('.mfa-opt') : null;
+      if(!b) return;
+      cur = b.getAttribute('data-k');
+      updateLabel(); syncSliders();
+      els.status.textContent = 'Tersimpan otomatis';
+      closePicker();
+    });
+  }
+  function renderOptions(){
+    pickerGrid.innerHTML = '';
+    available().forEach(function(t){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'mfa-opt' + (t.k === cur ? ' is-selected' : '');
+      b.setAttribute('data-k', t.k);
+      b.textContent = t.label;
+      pickerGrid.appendChild(b);
+    });
+  }
+  function openPicker(){
+    ensurePicker(); renderOptions();
+    picker.classList.add('is-open');
+    els.sel.setAttribute('aria-expanded', 'true');
+  }
+  function closePicker(){
+    if(!picker) return;
+    picker.classList.remove('is-open');
+    els.sel.setAttribute('aria-expanded', 'false');
+  }
+  function buildOptions(){
+    if(!available().some(function(t){ return t.k === cur; })) cur = 'a';
+    updateLabel();
+    closePicker();
   }
 
-  /* Dipanggil setiap poster dibuka. Poster Cari Lawan Sparing: logo Tim 2
-     memang belum ada (tampil "TIMMU?"), jadi hanya slider Tim 1 yang tampil. */
+  function syncSliders(){
+    var t = def(cur), v = get(mode(), cur), L = lim(cur);
+    els.x.min = els.y.min = -L; els.x.max = els.y.max = L;
+    els.s.disabled = !t.logo;                       // ukuran hanya untuk logo
+    els.rowS.classList.toggle('is-off', !t.logo);   // tinggi panel tetap, tidak lompat
+    els.s.value = v.s; els.x.value = v.x; els.y.value = v.y;
+    els.sv.textContent = t.logo ? v.s + '%' : '–'; els.xv.textContent = v.x; els.yv.textContent = v.y;
+  }
+
+  /* Dipanggil setiap poster dibuka. */
   window.__mfAdjustRefresh = function(){
-    var single = mode() === 'pending';
-    panel.classList.toggle('mfa-single', single);
-    if(single) cur = 'a';
     apply();
+    buildOptions();
     syncSliders();
     els.status.textContent = 'Tersimpan otomatis';
     requestAnimationFrame(fit);
@@ -27887,17 +27993,21 @@ if ('serviceWorker' in navigator) {
     store[m][cur] = store[m][cur] || {};
     store[m][cur][k] = parseFloat(e.target.value);
     apply();
-    var v = get(m, cur);
-    els.sv.textContent = v.s + '%'; els.xv.textContent = v.x; els.yv.textContent = v.y;
+    var v = get(m, cur), t = def(cur);
+    els.sv.textContent = t.logo ? v.s + '%' : '–'; els.xv.textContent = v.x; els.yv.textContent = v.y;
     els.status.textContent = save() ? '✓ Tersimpan' : 'Gagal menyimpan (penyimpanan browser nonaktif)';
   }
   els.s.addEventListener('input', onInput);
   els.x.addEventListener('input', onInput);
   els.y.addEventListener('input', onInput);
 
-  Array.prototype.forEach.call(tabs, function(b){
-    b.addEventListener('click', function(){ cur = b.getAttribute('data-team') === 'b' ? 'b' : 'a'; syncSliders(); });
-  });
+  els.sel.addEventListener('click', function(e){ e.stopPropagation(); openPicker(); });
+  // Escape menutup pop-up pilihan dulu (bukan langsung menutup poster)
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && picker && picker.classList.contains('is-open')){
+      e.stopImmediatePropagation(); closePicker();
+    }
+  }, true);
 
   els.reset.addEventListener('click', function(){
     var m = mode();
@@ -27908,7 +28018,7 @@ if ('serviceWorker' in navigator) {
 
   /* Klik/geser di panel tidak boleh menutup poster atau ikut toggle layar penuh.
      Flag __mfPanelDown mencegah poster tertutup saat slider dilepas di luar panel. */
-  overlay.addEventListener('pointerdown', function(e){ window.__mfPanelDown = panel.contains(e.target); }, true);
+  overlay.addEventListener('pointerdown', function(e){ window.__mfPanelDown = panel.contains(e.target) || !!(picker && picker.contains(e.target)); }, true);
   panel.addEventListener('click', function(e){ e.stopPropagation(); });
 
   apply();

@@ -27758,12 +27758,15 @@ if ('serviceWorker' in navigator) {
 #mf-poster.mf-pending .mf-team-away .mf-team-logo{transform:translate(var(--mf-b-x),var(--mf-b-y)) scale(var(--mf-b-s)) !important}
 #mf-poster:not(.mf-pending) .mf-team-home .mf-team-logo{transform:translate(calc(24px + var(--mf-a-x)),calc(27px + var(--mf-a-y))) scale(var(--mf-a-s)) !important}
 #mf-poster:not(.mf-pending) .mf-team-away .mf-team-logo{transform:translate(calc(24px + var(--mf-b-x)),calc(27px + var(--mf-b-y))) scale(var(--mf-b-s)) !important}
-#mf-name-a{translate:var(--mf-na-x,0px) var(--mf-na-y,0px)}
-#mf-name-b{translate:var(--mf-nb-x,0px) var(--mf-nb-y,0px)}
-#mf-day{translate:var(--mf-day-x,0px) var(--mf-day-y,0px)}
-#mf-date{translate:var(--mf-date-x,0px) var(--mf-date-y,0px)}
-#mf-time{translate:var(--mf-time-x,0px) var(--mf-time-y,0px)}
-#mf-team-contact{translate:var(--mf-wa-x,0px) var(--mf-wa-y,0px)}
+/* Teks: geser (translate) + ukuran (scale). Nama tim diperbesar/diperkecil dari
+   tengah; hari, tanggal, jam, dan nomor WA dari sisi kiri (teksnya rata kiri),
+   supaya titik awalnya tidak ikut bergeser. */
+#mf-name-a{translate:var(--mf-na-x,0px) var(--mf-na-y,0px);scale:var(--mf-na-s,1);transform-origin:50% 50%}
+#mf-name-b{translate:var(--mf-nb-x,0px) var(--mf-nb-y,0px);scale:var(--mf-nb-s,1);transform-origin:50% 50%}
+#mf-day{translate:var(--mf-day-x,0px) var(--mf-day-y,0px);scale:var(--mf-day-s,1);transform-origin:0 50%}
+#mf-date{translate:var(--mf-date-x,0px) var(--mf-date-y,0px);scale:var(--mf-date-s,1);transform-origin:0 50%}
+#mf-time{translate:var(--mf-time-x,0px) var(--mf-time-y,0px);scale:var(--mf-time-s,1);transform-origin:0 50%}
+#mf-team-contact{translate:var(--mf-wa-x,0px) var(--mf-wa-y,0px);scale:var(--mf-wa-s,1);transform-origin:0 50%}
 
 /* Panel menempel di dasar layar; poster mengecil otomatis (scale) supaya
    poster + panel selalu muat tanpa scroll. Tinggi ruang panel diisi lewat
@@ -27888,7 +27891,7 @@ if ('serviceWorker' in navigator) {
     var m = mode();
     TARGETS.forEach(function(t){
       var v = get(m, t.k);
-      if(t.logo) poster.style.setProperty('--mf-' + t.k + '-s', v.s / 100);
+      poster.style.setProperty('--mf-' + t.k + '-s', v.s / 100);
       poster.style.setProperty('--mf-' + t.k + '-x', v.x + 'px');
       poster.style.setProperty('--mf-' + t.k + '-y', v.y + 'px');
     });
@@ -27953,10 +27956,10 @@ if ('serviceWorker' in navigator) {
   function syncSliders(){
     var t = def(cur), v = get(mode(), cur), L = lim(cur);
     els.x.min = els.y.min = -L; els.x.max = els.y.max = L;
-    els.s.disabled = !t.logo;                       // ukuran hanya untuk logo
-    els.rowS.classList.toggle('is-off', !t.logo);   // tinggi panel tetap, tidak lompat
+    els.s.disabled = false;                         // ukuran berlaku untuk semua elemen
+    els.rowS.classList.remove('is-off');
     els.s.value = v.s; els.x.value = v.x; els.y.value = v.y;
-    els.sv.textContent = t.logo ? v.s + '%' : '–'; els.xv.textContent = v.x; els.yv.textContent = v.y;
+    els.sv.textContent = v.s + '%'; els.xv.textContent = v.x; els.yv.textContent = v.y;
   }
 
   /* Dipanggil setiap poster dibuka. */
@@ -27994,7 +27997,7 @@ if ('serviceWorker' in navigator) {
     store[m][cur][k] = parseFloat(e.target.value);
     apply();
     var v = get(m, cur), t = def(cur);
-    els.sv.textContent = t.logo ? v.s + '%' : '–'; els.xv.textContent = v.x; els.yv.textContent = v.y;
+    els.sv.textContent = v.s + '%'; els.xv.textContent = v.x; els.yv.textContent = v.y;
     els.status.textContent = save() ? '✓ Tersimpan' : 'Gagal menyimpan (penyimpanan browser nonaktif)';
   }
   els.s.addEventListener('input', onInput);

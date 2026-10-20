@@ -25254,6 +25254,17 @@ body:has(#page-customer-member:not(.hidden)) main {
       </div>
     </div>
   </div>
+    <!-- Panel slider atur logo (menempel di dasar layar, hanya tampil saat poster belum diperbesar) -->
+    <div id="mf-adjust" role="group" aria-label="Atur logo poster">
+      <div class="mfa-tabs">
+        <button type="button" class="mfa-tab is-active" data-team="a">Logo Tim 1</button>
+        <button type="button" class="mfa-tab" data-team="b">Logo Tim 2</button>
+      </div>
+      <label class="mfa-row"><span class="mfa-label">Ukuran</span><input type="range" id="mfa-s" data-k="s" min="40" max="200" step="1" value="100"><output id="mfa-s-v">100%</output></label>
+      <label class="mfa-row"><span class="mfa-label">Geser ↔</span><input type="range" id="mfa-x" data-k="x" min="-80" max="80" step="1" value="0"><output id="mfa-x-v">0</output></label>
+      <label class="mfa-row"><span class="mfa-label">Geser ↕</span><input type="range" id="mfa-y" data-k="y" min="-80" max="80" step="1" value="0"><output id="mfa-y-v">0</output></label>
+      <div class="mfa-foot"><span id="mfa-status">Tersimpan otomatis</span><button type="button" id="mfa-reset">Reset</button></div>
+    </div>
 </div>
 <script id="match-founded-poster-script">
 (function(){
@@ -25358,6 +25369,7 @@ body:has(#page-customer-member:not(.hidden)) main {
     if(!overlay || !poster) return;
     var isPending = String(data.mfStatus || '').toLowerCase() === 'pending';
     poster.classList.toggle('mf-pending', isPending);
+    if(window.__mfAdjustRefresh) window.__mfAdjustRefresh();
     fillTeam(document.getElementById('mf-logo-a'), document.getElementById('mf-name-a'), data.mfTeamA, data.mfLogoA);
     var logoB = document.getElementById('mf-logo-b');
     var nameB = document.getElementById('mf-name-b');
@@ -25478,7 +25490,7 @@ body:has(#page-customer-member:not(.hidden)) main {
         // Tutup otomatis kalau klik terjadi di luar area poster (overlay
         // atau ruang kosong di sekitarnya), dan hentikan event supaya tidak
         // ikut memicu tombol/elemen lain di halaman di baliknya.
-        if(poster && !poster.contains(e.target)){
+        if(poster && !poster.contains(e.target) && !window.__mfPanelDown){
           e.preventDefault();
           e.stopPropagation();
           closePoster();
@@ -27736,6 +27748,172 @@ if ('serviceWorker' in navigator) {
   object-fit:contain !important;
 }
 </style>
+
+<style id="mf-logo-adjust-style">
+/* ===== Atur posisi & ukuran logo poster (Sparing & Founded) =====
+   Nilai dari slider masuk lewat CSS variable di #mf-poster. Ukuran memakai
+   scale, geser memakai translate (px) — ikut membesar bersama poster saat
+   mode layar penuh karena poster diperbesar dengan transform. */
+#mf-poster{--mf-a-s:1;--mf-a-x:0px;--mf-a-y:0px;--mf-b-s:1;--mf-b-x:0px;--mf-b-y:0px}
+#mf-poster.mf-pending .mf-team-home .mf-team-logo{transform:translate(var(--mf-a-x),var(--mf-a-y)) scale(var(--mf-a-s)) !important}
+#mf-poster.mf-pending .mf-team-away .mf-team-logo{transform:translate(var(--mf-b-x),var(--mf-b-y)) scale(var(--mf-b-s)) !important}
+#mf-poster:not(.mf-pending) .mf-team-home .mf-team-logo{transform:translate(calc(24px + var(--mf-a-x)),calc(27px + var(--mf-a-y))) scale(var(--mf-a-s)) !important}
+#mf-poster:not(.mf-pending) .mf-team-away .mf-team-logo{transform:translate(calc(24px + var(--mf-b-x)),calc(27px + var(--mf-b-y))) scale(var(--mf-b-s)) !important}
+
+/* Panel menempel di dasar layar; poster mengecil otomatis (scale) supaya
+   poster + panel selalu muat tanpa scroll. Tinggi ruang panel diisi lewat
+   --mfa-pad dari JS. Mode layar penuh: panel hilang, scale kembali 1. */
+#mf-overlay{overflow:hidden;padding-top:12px;padding-bottom:var(--mfa-pad,18px)}
+#mf-poster{scale:var(--mf-fit,1)}
+#mf-overlay.mf-expanded{overflow:hidden}
+#mf-overlay.mf-expanded #mf-poster{scale:1}
+#mf-overlay.mf-expanded #mf-adjust{display:none}
+
+#mf-adjust{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:max(10px,env(safe-area-inset-bottom));
+  width:min(88vw,340px);z-index:3;
+  box-sizing:border-box;padding:10px 12px 9px;border-radius:16px;
+  background:rgba(15,23,42,.78);border:1px solid rgba(255,255,255,.16);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  color:#fff;font-family:'Plus Jakarta Sans','Poppins',Arial,sans-serif;
+  box-shadow:0 10px 26px rgba(0,0,0,.35);
+}
+@media (max-width:380px){#mf-adjust{width:96vw}}
+#mf-adjust .mfa-tabs{display:flex;gap:6px;margin-bottom:6px}
+#mf-adjust .mfa-tab{
+  flex:1;padding:6px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.08);color:#e2e8f0;font-size:.7rem;font-weight:800;cursor:pointer;
+}
+#mf-adjust .mfa-tab.is-active{background:#fff;color:#0f172a;border-color:#fff}
+#mf-adjust.mfa-single .mfa-tab[data-team="b"]{display:none}
+#mf-adjust .mfa-row{display:grid;grid-template-columns:64px 1fr 44px;align-items:center;gap:8px;margin:5px 0;cursor:default}
+#mf-adjust .mfa-label{font-size:.68rem;font-weight:800;color:#cbd5e1}
+#mf-adjust output{font-size:.66rem;font-weight:800;text-align:right;color:#fde68a;font-variant-numeric:tabular-nums}
+#mf-adjust input[type=range]{width:100%;margin:0;accent-color:#fbbf24;height:26px;touch-action:pan-y}
+#mf-adjust .mfa-foot{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
+#mf-adjust #mfa-status{font-size:.62rem;color:#94a3b8;font-weight:700}
+#mf-adjust #mfa-reset{
+  padding:4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.25);
+  background:transparent;color:#fff;font-size:.66rem;font-weight:800;cursor:pointer;
+}
+</style>
+
+<script id="mf-logo-adjust-script">
+(function(){
+  'use strict';
+  var KEY = 'sandaga_mf_logo_adjust_v1';
+  var overlay = document.getElementById('mf-overlay');
+  var poster  = document.getElementById('mf-poster');
+  var panel   = document.getElementById('mf-adjust');
+  if(!overlay || !poster || !panel) return;
+
+  var store = load();
+  var cur = 'a';
+  var els = {
+    s: document.getElementById('mfa-s'), x: document.getElementById('mfa-x'), y: document.getElementById('mfa-y'),
+    sv: document.getElementById('mfa-s-v'), xv: document.getElementById('mfa-x-v'), yv: document.getElementById('mfa-y-v'),
+    status: document.getElementById('mfa-status'), reset: document.getElementById('mfa-reset')
+  };
+  var tabs = panel.querySelectorAll('.mfa-tab');
+
+  function load(){
+    try{ var r = localStorage.getItem(KEY); var o = r ? JSON.parse(r) : {}; return (o && typeof o === 'object') ? o : {}; }
+    catch(e){ return {}; }
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(store)); return true; }
+    catch(e){ return false; }
+  }
+  function clamp(v, d, min, max){ v = parseFloat(v); if(!isFinite(v)) return d; return Math.min(max, Math.max(min, v)); }
+  function mode(){ return poster.classList.contains('mf-pending') ? 'pending' : 'founded'; }
+  function get(m, t){
+    var o = (store[m] && store[m][t]) || {};
+    return { s: clamp(o.s, 100, 40, 200), x: clamp(o.x, 0, -80, 80), y: clamp(o.y, 0, -80, 80) };
+  }
+
+  /* Pasang nilai tersimpan (sesuai jenis poster) ke kedua logo. */
+  function apply(){
+    var m = mode();
+    ['a','b'].forEach(function(t){
+      var v = get(m, t);
+      poster.style.setProperty('--mf-' + t + '-s', v.s / 100);
+      poster.style.setProperty('--mf-' + t + '-x', v.x + 'px');
+      poster.style.setProperty('--mf-' + t + '-y', v.y + 'px');
+    });
+  }
+
+  function syncSliders(){
+    var v = get(mode(), cur);
+    els.s.value = v.s; els.x.value = v.x; els.y.value = v.y;
+    els.sv.textContent = v.s + '%'; els.xv.textContent = v.x; els.yv.textContent = v.y;
+    Array.prototype.forEach.call(tabs, function(b){ b.classList.toggle('is-active', b.getAttribute('data-team') === cur); });
+  }
+
+  /* Dipanggil setiap poster dibuka. Poster Cari Lawan Sparing: logo Tim 2
+     memang belum ada (tampil "TIMMU?"), jadi hanya slider Tim 1 yang tampil. */
+  window.__mfAdjustRefresh = function(){
+    var single = mode() === 'pending';
+    panel.classList.toggle('mfa-single', single);
+    if(single) cur = 'a';
+    apply();
+    syncSliders();
+    els.status.textContent = 'Tersimpan otomatis';
+    requestAnimationFrame(fit);
+  };
+
+  /* Sisakan ruang untuk panel di dasar layar, lalu kecilkan poster (scale)
+     bila tinggi layar tidak cukup. Dihitung ulang saat layar diputar/di-resize. */
+  function fit(){
+    if(!overlay.classList.contains('mf-open') || overlay.classList.contains('mf-expanded')) return;
+    var panelH = panel.offsetHeight || 0;
+    var pad = panelH + 10 + 10;                 // panel + jarak bawah + jarak ke poster
+    overlay.style.setProperty('--mfa-pad', pad + 'px');
+    var posterH = poster.offsetHeight;
+    if(!posterH) return;
+    var avail = window.innerHeight - 12 - pad;
+    var k = Math.max(0.4, Math.min(1, avail / posterH));
+    poster.style.setProperty('--mf-fit', k);
+  }
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
+  new MutationObserver(function(){ requestAnimationFrame(fit); }).observe(overlay, {attributes:true, attributeFilter:['class']});
+
+  function onInput(e){
+    var k = e.target.getAttribute('data-k');
+    if(!k) return;
+    var m = mode();
+    store[m] = store[m] || {};
+    store[m][cur] = store[m][cur] || {};
+    store[m][cur][k] = parseFloat(e.target.value);
+    apply();
+    var v = get(m, cur);
+    els.sv.textContent = v.s + '%'; els.xv.textContent = v.x; els.yv.textContent = v.y;
+    els.status.textContent = save() ? '✓ Tersimpan' : 'Gagal menyimpan (penyimpanan browser nonaktif)';
+  }
+  els.s.addEventListener('input', onInput);
+  els.x.addEventListener('input', onInput);
+  els.y.addEventListener('input', onInput);
+
+  Array.prototype.forEach.call(tabs, function(b){
+    b.addEventListener('click', function(){ cur = b.getAttribute('data-team') === 'b' ? 'b' : 'a'; syncSliders(); });
+  });
+
+  els.reset.addEventListener('click', function(){
+    var m = mode();
+    if(store[m]) delete store[m][cur];
+    save(); apply(); syncSliders();
+    els.status.textContent = 'Dikembalikan ke bawaan';
+  });
+
+  /* Klik/geser di panel tidak boleh menutup poster atau ikut toggle layar penuh.
+     Flag __mfPanelDown mencegah poster tertutup saat slider dilepas di luar panel. */
+  overlay.addEventListener('pointerdown', function(e){ window.__mfPanelDown = panel.contains(e.target); }, true);
+  panel.addEventListener('click', function(e){ e.stopPropagation(); });
+
+  apply();
+})();
+</script>
 
 <style id="customer-period-arrows-v1">
 /* Tombol panah kiri/kanan periode — disamakan dengan Booking Schedule admin. */

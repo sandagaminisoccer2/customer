@@ -18,17 +18,109 @@
 <link href="ikon.png" rel="apple-touch-icon" sizes="152x152"/>
 <link href="ikon.png" rel="apple-touch-icon" sizes="167x167"/>
 <link href="ikon.png" rel="apple-touch-icon" sizes="180x180"/>
+<script id="sandaga-img-opt">
+/* Kompres otomatis logo & latar: versi kecil (WebP) dibuat sekali di HP pelanggan,
+   disimpan di localStorage, lalu dipakai langsung di kunjungan berikutnya. */
+(function(){
+  var PFX='sandagaImgOpt1:', TTL=24*3600*1000;
+  var PH='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+  var SPEC={
+    'logo.png':{max:256,q:.85},
+    'latar.png':{max:1080,q:.8,v:'--img-latar'},
+    'latardekstop.png':{max:1920,q:.8,v:'--img-latardekstop'},
+    'latarsparing.png':{max:1400,q:.85,v:'--img-latarsparing'},
+    'latarlawan.png':{max:1400,q:.85,v:'--img-latarlawan'}
+  };
+  var mem={}, root=document.documentElement;
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  function applyVar(n){
+    var sp=SPEC[n]; if(!sp.v) return;
+    if(mem[n]) root.style.setProperty(sp.v,'url("'+mem[n]+'")');
+    else root.style.removeProperty(sp.v);
+  }
+  function fixImg(img){
+    if(mem[img.getAttribute('data-io')==='1'?'logo.png':'']){ img.setAttribute('srcset',mem['logo.png']+' 1x'); }
+    else if(img.getAttribute('srcset')===PH+' 1x'){ img.removeAttribute('srcset'); }
+  }
+  function applyImgs(){
+    var l=document.querySelectorAll('img[data-io]');
+    for(var i=0;i<l.length;i++) fixImg(l[i]);
+  }
+  var stale=[];
+  Object.keys(SPEC).forEach(function(n){
+    var c=lsGet(PFX+n), t=+lsGet(PFX+n+':t')||0;
+    if(c){ mem[n]=(c==='orig')?'':c; applyVar(n); if(Date.now()-t>TTL) stale.push(n); }
+    else stale.push(n);
+  });
+  // Gambar logo di HTML dimulai dari placeholder; ganti begitu elemennya muncul.
+  try{
+    new MutationObserver(function(ms){
+      for(var i=0;i<ms.length;i++){ var a=ms[i].addedNodes;
+        for(var j=0;j<a.length;j++){ var n=a[j];
+          if(n.nodeType!==1) continue;
+          if(n.tagName==='IMG'&&n.hasAttribute('data-io')) fixImg(n);
+          else if(n.querySelectorAll){ var q=n.querySelectorAll('img[data-io]'); for(var k=0;k<q.length;k++) fixImg(q[k]); }
+        } }
+    }).observe(root,{childList:true,subtree:true});
+  }catch(e){}
+  document.addEventListener('DOMContentLoaded',applyImgs);
+  // Pengaman: apa pun yang terjadi, logo asli dipakai bila placeholder masih tersisa.
+  setTimeout(function(){
+    var l=document.querySelectorAll('img[data-io]');
+    for(var i=0;i<l.length;i++) if(l[i].getAttribute('srcset')===PH+' 1x') l[i].removeAttribute('srcset');
+  },3000);
+
+  function compress(n){
+    var sp=SPEC[n];
+    return fetch(n,{cache:'force-cache'}).then(function(r){ if(!r.ok) throw 0; return r.blob(); }).then(function(b){
+      return new Promise(function(res){
+        var u=URL.createObjectURL(b), im=new Image();
+        im.onload=function(){
+          try{
+            var w=im.naturalWidth,h=im.naturalHeight; if(!w||!h) return res('orig');
+            var s=Math.min(1,sp.max/Math.max(w,h));
+            w=Math.max(1,Math.round(w*s)); h=Math.max(1,Math.round(h*s));
+            var c=document.createElement('canvas'); c.width=w; c.height=h;
+            c.getContext('2d').drawImage(im,0,0,w,h);
+            var o=c.toDataURL('image/webp',sp.q);
+            if(o.indexOf('data:image/webp')!==0) o=c.toDataURL('image/png');
+            URL.revokeObjectURL(u);
+            res(o.length*0.75<b.size?o:'orig');
+          }catch(e){ res('orig'); }
+        };
+        im.onerror=function(){ res('orig'); };
+        im.src=u;
+      });
+    });
+  }
+  function run(){
+    var i=0;
+    (function next(){
+      if(i>=stale.length) return;
+      var n=stale[i++];
+      compress(n).then(function(o){
+        lsSet(PFX+n,o); lsSet(PFX+n+':t',String(Date.now()));
+        mem[n]=(o==='orig')?'':o; applyVar(n);
+        if(n==='logo.png') applyImgs();
+      }).catch(function(){}).then(function(){ setTimeout(next,150); });
+    })();
+  }
+  // Setelah halaman tampil, supaya tidak berebut bandwidth dengan startup.
+  function start(){ if(stale.length) setTimeout(run,600); }
+  if(document.readyState==='complete') start(); else window.addEventListener('load',start,{once:true});
+})();
+</script>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://foto-mahasiswa-default-rtdb.firebaseio.com" rel="preconnect"/>
 <link href="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js" rel="modulepreload"/>
 <link href="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js" rel="modulepreload"/>
-<link as="image" fetchpriority="high" href="logo.png" rel="preload"/>
 <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Plus+Jakarta+Sans:ital,wght@0,500;0,600;0,700;0,800;1,600;1,700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'"/>
 <noscript><link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Plus+Jakarta+Sans:ital,wght@0,500;0,600;0,700;0,800;1,600;1,700&amp;display=swap" rel="stylesheet"/></noscript>
 <script async src="https://cdn.tailwindcss.com" onload="window.__twReady=1" onerror="window.__twReady=1"></script>
 <style>
         body { 
-            background-image: url('latar.png'); 
+            background-image: var(--img-latar,url('latar.png')); 
             background-size: cover; 
             background-attachment: fixed; 
             background-position: center;
@@ -793,7 +885,7 @@ body {
     background-color:#dff2ff !important;
     background-image:
         linear-gradient(135deg, rgba(255,255,255,.18), rgba(37,99,235,.08)),
-        url('latar.png') !important;
+        var(--img-latar,url('latar.png')) !important;
     background-size:cover !important;
     background-position:center !important;
     background-attachment:fixed !important;
@@ -2376,7 +2468,7 @@ body:has(#page-customer-booking:not(.hidden))
             background-color: #eef6ff;
         }
         body { 
-            background-image: url('latar.png'); 
+            background-image: var(--img-latar,url('latar.png')); 
             background-size: cover; 
             background-attachment: fixed !important; 
             background-position: center center;
@@ -5026,7 +5118,7 @@ body::before {
     width: 100vw !important;
     height: 100vh !important;
     min-height: 100dvh !important;
-    background-image: url('latar.png') !important;
+    background-image: var(--img-latar,url('latar.png')) !important;
     background-size: cover !important;
     background-position: center center !important;
     background-repeat: no-repeat !important;
@@ -5039,12 +5131,12 @@ body::before {
 }
 @media (min-width: 641px) {
     body::before {
-        background-image: url('latardekstop.png') !important;
+        background-image: var(--img-latardekstop,url('latardekstop.png')) !important;
     }
 }
 @media (max-width: 640px) {
     body::before {
-        background-image: url('latar.png') !important;
+        background-image: var(--img-latar,url('latar.png')) !important;
     }
 }
 </style>
@@ -5654,7 +5746,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <!-- LOADING AWAL APLIKASI -->
 <div id="sandaga-startup-loader" aria-label="Memuat Sandaga Minisoccer 2">
   <div id="sandaga-startup-card">
-    <img id="sandaga-startup-logo" src="logo.png" alt="Sandaga Minisoccer 2" fetchpriority="high" decoding="async" />
+    <img id="sandaga-startup-logo" data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="Sandaga Minisoccer 2" fetchpriority="high" decoding="async" />
     <h2 id="sandaga-startup-title">SANDAGA MINISOCCER 2</h2>
     <p id="sandaga-startup-subtitle">Menyiapkan aplikasi...</p>
     <div id="sandaga-startup-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -5667,7 +5759,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <!-- LOADING DATA JADWAL CUSTOMER -->
 <div id="schedule-data-loader" aria-label="Memuat data jadwal">
   <div id="schedule-data-loader-card">
-    <img id="schedule-data-loader-logo" src="logo.png" alt="Sandaga Minisoccer 2" />
+    <img id="schedule-data-loader-logo" data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="Sandaga Minisoccer 2" />
     <h2 id="schedule-data-loader-title">JADWAL</h2>
     <p id="schedule-data-loader-subtitle">Mengambil data jadwal...</p>
     <div id="schedule-data-loader-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -5680,7 +5772,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <!-- LOADING DATA SPARING -->
 <div id="sparing-data-loader" aria-label="Memuat data sparing">
   <div id="sparing-data-loader-card">
-    <img id="sparing-data-loader-logo" src="logo.png" alt="Sandaga Minisoccer 2" />
+    <img id="sparing-data-loader-logo" data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="Sandaga Minisoccer 2" />
     <h2 id="sparing-data-loader-title">SPARING</h2>
     <p id="sparing-data-loader-subtitle">Mengambil data sparing...</p>
     <div id="sparing-data-loader-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -5693,7 +5785,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <!-- LOADING DATA BOOKING (dipakai saat menu Booking pertama kali dibuka) -->
 <div id="booking-data-loader" aria-label="Memuat data booking">
   <div id="booking-data-loader-card">
-    <img id="booking-data-loader-logo" src="logo.png" alt="Sandaga Minisoccer 2" />
+    <img id="booking-data-loader-logo" data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="Sandaga Minisoccer 2" />
     <h2 id="booking-data-loader-title">BOOKING</h2>
     <p id="booking-data-loader-subtitle">Mengambil data jadwal...</p>
     <div id="booking-data-loader-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -5707,7 +5799,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <body class="min-h-screen p-2 sm:p-4 pt-4 sm:pt-6 flex flex-col items-center text-slate-900 font-medium">
 <!-- Header -->
 <header class="w-full max-w-6xl flex flex-col items-center justify-center gap-2 mb-6 text-center relative">
-<img class="w-30 h-24 sm:w-30 sm:h-28 object-contain" src="logo.png"/>
+<img class="w-30 h-24 sm:w-30 sm:h-28 object-contain" data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png"/>
 <h1 class="text-lg sm:text-2xl font-black text-slate-900 drop-shadow-sm">SANDAGA MINISOCCER 2</h1>
 </header>
 <main class="w-full max-w-6xl space-y-6">
@@ -5716,7 +5808,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <div aria-label="Daftar harga lapangan" class="customer-price-card">
 <div class="customer-booking-page-head customer-price-booking-header">
   <div class="customer-booking-head-logo" aria-hidden="true">
-    <img src="logo.png" alt="">
+    <img data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="">
   </div>
   <div class="customer-booking-head-copy">
     <h2><span>DAFTAR HARGA</span><span>SANDAGA MINISOCCER 2</span></h2>
@@ -5770,7 +5862,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <div class="glass-panel p-4 sm:p-6 rounded-2xl hidden customer-content-page" id="page-customer-member">
   <div class="customer-member-page-head">
     <div class="customer-member-head-logo" aria-hidden="true">
-      <img src="logo.png" alt="">
+      <img data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="">
     </div>
     <div class="customer-member-head-copy">
       <h2><span>LIST MEMBER</span><span>SANDAGA MINISOCCER 2</span></h2>
@@ -5784,7 +5876,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <div class="glass-panel p-4 sm:p-6 rounded-2xl hidden customer-content-page customer-booking-page" id="page-customer-booking">
   <div class="customer-booking-page-head">
     <div class="customer-booking-head-logo" aria-hidden="true">
-      <img src="logo.png" alt="">
+      <img data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="">
     </div>
     <div class="customer-booking-head-copy">
       <h2><span>BOOKING</span><span>SANDAGA MINISOCCER 2</span></h2>
@@ -5920,7 +6012,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <div class="p-4 sm:p-6 hidden customer-content-page sparring-page-transparent" id="page-customer-sparring">
 <div class="customer-booking-page-head customer-sparring-page-head">
   <div class="customer-booking-head-logo" aria-hidden="true">
-    <img src="logo.png" alt="">
+    <img data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="">
   </div>
   <div class="customer-booking-head-copy">
     <h2><span>SPARING</span><span>SANDAGA MINISOCCER 2</span></h2>
@@ -6000,7 +6092,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <div class="sub-menu-modern glass-panel p-3 sm:p-6 rounded-2xl hidden" id="page-customer-schedule">
 <div class="customer-member-page-head customer-schedule-member-style-head">
   <div class="customer-member-head-logo" aria-hidden="true">
-    <img src="logo.png" alt="">
+    <img data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="">
   </div>
   <div class="customer-member-head-copy">
     <h2><span>JADWAL LAPANGAN</span><span>SANDAGA MINISOCCER 2</span></h2>
@@ -13303,7 +13395,7 @@ body {
 @media (min-width: 641px) {
     body,
     body.sub-menu-active {
-        background-image: url('latardekstop.png') !important;
+        background-image: var(--img-latardekstop,url('latardekstop.png')) !important;
         background-size: cover !important;
         background-position: center center !important;
         background-repeat: no-repeat !important;
@@ -13313,7 +13405,7 @@ body {
 @media (max-width: 640px) {
     body,
     body.sub-menu-active {
-        background-image: url('latar.png') !important;
+        background-image: var(--img-latar,url('latar.png')) !important;
         background-size: cover !important;
         background-position: center center !important;
         background-repeat: no-repeat !important;
@@ -14063,7 +14155,7 @@ body {
     min-height: 100dvh;
     margin: 0;
     background-color: transparent !important;
-    background-image: url('latar.png') !important;
+    background-image: var(--img-latar,url('latar.png')) !important;
     background-size: cover !important;
     background-position: center center !important;
     background-repeat: no-repeat !important;
@@ -22927,7 +23019,7 @@ body:has(#page-customer-member:not(.hidden)) main {
 }
 #mf-poster.mf-pending .mf-tagline{ display:none; }
 #mf-poster.mf-pending{
-    background-image:url('latarsparing.png');
+    background-image:var(--img-latarsparing,url('latarsparing.png'));
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -23094,7 +23186,7 @@ body:has(#page-customer-member:not(.hidden)) main {
     text-shadow:none;
 }
 #mf-poster:not(.mf-pending){
-    background-image:url('latarlawan.png');
+    background-image:var(--img-latarlawan,url('latarlawan.png'));
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -23237,7 +23329,7 @@ body:has(#page-customer-member:not(.hidden)) main {
   <div id="mf-shell">
     <div id="mf-poster">
       <div class="mf-corner-dots mf-corner-dots--tl" aria-hidden="true"></div>
-      <div class="mf-corner-dots mf-corner-dots--br" aria-hidden="true"></div>      <div class="mf-badge-logo"><img src="logo.png" alt="Logo Klub"/></div>
+      <div class="mf-corner-dots mf-corner-dots--br" aria-hidden="true"></div>      <div class="mf-badge-logo"><img data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="Logo Klub"/></div>
       <p class="mf-eyebrow">M A T C H</p>
       <h2 class="mf-title">FOUNDED</h2>
       <p class="mf-subtitle" id="mf-subtitle">Match Day</p>

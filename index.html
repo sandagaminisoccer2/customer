@@ -26249,7 +26249,7 @@ html body #page-customer-schedule .cs-period-nav:focus-visible{outline:3px solid
 
 
 <style id="customer-solid-header-v1">
-html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
+html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
   background:linear-gradient(135deg,#ffffff 0%,#e4f0ff 100%) !important;
   background-image:linear-gradient(135deg,#ffffff 0%,#e4f0ff 100%) !important;
   -webkit-backdrop-filter:none !important;
@@ -26260,7 +26260,7 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
   overflow:hidden !important;
   opacity:1 !important;
 }
-html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header)::before{
+html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header)::before{
   background:linear-gradient(180deg,rgba(255,255,255,.55),transparent 55%) !important;
 }
 #head-mask{
@@ -26271,7 +26271,7 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
 </style>
 <script id="customer-solid-header-v1-js">
 (function(){
-  var SEL='#page-customer-booking .customer-booking-page-head,#page-customer-sparring .customer-booking-page-head,#page-customer-member .customer-member-page-head,#page-customer-schedule .customer-member-page-head,#page-customer-price .customer-booking-page-head';
+  var SEL='#page-customer-booking .customer-booking-page-head,#page-customer-sparring .customer-booking-page-head,#page-customer-member .customer-member-page-head,#page-customer-schedule .customer-member-page-head,#page-customer-price .customer-booking-page-head,#page-customer-promo .customer-booking-page-head';
   var mask,inner,lastKey='';
   function activeHead(){
     var list=document.querySelectorAll(SEL),vh=window.innerHeight;
@@ -26320,18 +26320,18 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
 </script>
 <style id="desktop-menu-header-sticky-fix">
 @media (min-width:641px){
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo){
     overflow:visible !important;
   }
   html body:not(#_a):not(#_b):not(#_c){ overflow-x:clip !important; overflow-y:visible !important; }
   html body:not(#_a) main{ overflow:visible !important; }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
     position:sticky !important;
     top:16px !important;
     z-index:9990 !important;
     isolation:isolate !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) :is(h1,h2,h3,p,span){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) :is(h1,h2,h3,p,span){
     color:#132a5e !important;
     text-shadow:none !important;
   }
@@ -26387,14 +26387,14 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
     margin-top:0 !important;
     padding-top:0 !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo){
     width:100% !important;
     max-width:none !important;
     margin:0 !important;
     padding:0 !important;
     box-sizing:border-box !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
     position:sticky !important;
     top:16px !important;
     z-index:9990 !important;
@@ -26413,7 +26413,7 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
     left:auto !important;
     right:auto !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-head-logo,.customer-member-head-logo){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-head-logo,.customer-member-head-logo){
     flex:0 0 76px !important;
     width:76px !important;
     height:76px !important;
@@ -26423,19 +26423,19 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
     align-items:center !important;
     justify-content:center !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-head-logo,.customer-member-head-logo) img{
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-head-logo,.customer-member-head-logo) img{
     width:100% !important;
     height:100% !important;
     object-fit:contain !important;
     display:block !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-head-copy,.customer-member-head-copy){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-head-copy,.customer-member-head-copy){
     order:0 !important;
     min-width:0 !important;
     flex:1 1 auto !important;
     text-align:left !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) h2{
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) h2{
     display:block !important;
     width:auto !important;
     margin:0 !important;
@@ -26446,7 +26446,7 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
     font-weight:950 !important;
     white-space:normal !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) h2 span{
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) h2 span{
     display:block !important;
     font-size:.88em !important;
   }
@@ -26479,26 +26479,35 @@ body:has(#page-customer-promo:not(.hidden)) > header{display:none!important;visi
 body:has(#page-customer-promo:not(.hidden)) main{margin-top:0!important;padding-top:0!important}
 html body #page-customer-promo,html body #page-customer-promo.customer-content-page{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:0!important;margin-top:0!important;overflow:visible!important}
 html body #page-customer-promo::before,html body #page-customer-promo::after{display:none!important;content:none!important}
-html body #page-customer-promo .customer-booking-page-head{width:100%!important;max-width:none!important;margin:0 0 10px!important}
-@media(max-width:640px){html body #page-customer-promo .customer-booking-page-head{position:sticky!important;top:16px!important;z-index:9990!important}}
-@media(max-width:380px){html body #page-customer-promo .customer-booking-page-head{top:6px!important}}
-#page-customer-promo .promo-grid{margin-top:0!important}
+#page-customer-promo .promo-grid{margin-top:8px!important}
+/* ===== HEADER PROMO = SAMA PERSIS DENGAN MENU LAIN (mobile: fixed seperti Booking/Sparing) ===== */
+@media(max-width:640px){
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo{position:relative!important;padding-top:87px!important;overflow:visible!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-page-head{position:fixed!important;top:16px!important;left:12px!important;right:12px!important;width:auto!important;max-width:none!important;margin:0!important;box-sizing:border-box!important;z-index:9990!important;isolation:isolate!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:11px!important;min-height:82px!important;padding:10px 13px!important;background:linear-gradient(135deg,#ffffff 0%,#e4f0ff 100%)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:1px solid #fff!important;border-radius:22px!important;box-shadow:0 10px 26px rgba(2,6,23,.22)!important;overflow:hidden!important;opacity:1!important;transform:none!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-page-head::before{content:""!important;position:absolute!important;inset:0!important;border-radius:inherit!important;pointer-events:none!important;z-index:-1!important;background:linear-gradient(180deg,rgba(255,255,255,.55),transparent 55%)!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-head-logo{order:1!important;flex:0 0 58px!important;width:58px!important;height:58px!important;max-width:none!important;max-height:none!important;margin:0!important;display:flex!important;align-items:center!important;justify-content:center!important;position:relative!important;z-index:1!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-head-logo img{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;display:block!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-head-copy{order:2!important;min-width:0!important;flex:1 1 auto!important;text-align:left!important;position:relative!important;z-index:1!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-page-head h2{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:2px!important;margin:0!important;color:#132a5e!important;font-size:clamp(.82rem,3.6vw,1.08rem)!important;line-height:1.15!important;letter-spacing:.035em!important;font-weight:950!important;white-space:normal!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-page-head h2 span{display:block!important;font-size:1em!important;color:#132a5e!important}
+}
+@media(max-width:380px){
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo{padding-top:85px!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-page-head{top:6px!important;left:9px!important;right:9px!important;min-height:76px!important;gap:9px!important;padding:9px 11px!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-head-logo{flex-basis:52px!important;width:52px!important;height:52px!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-page-head h2{font-size:.78rem!important}
+}
+
 /* header sama seperti menu lain */
-html body #page-customer-promo .customer-booking-page-head{display:flex!important;align-items:center!important;gap:12px!important;margin:0 0 12px!important;padding:12px 15px!important;min-height:88px!important;box-sizing:border-box!important;background:linear-gradient(135deg,#ffffff 0%,#e4f0ff 100%)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:1px solid #fff!important;border-radius:22px!important;box-shadow:0 10px 26px rgba(2,6,23,.22)!important;overflow:hidden!important;opacity:1!important}
-html body #page-customer-promo .customer-booking-head-logo{display:flex!important;flex:0 0 68px!important;width:68px!important;height:68px!important;align-items:center!important;justify-content:center!important}
-html body #page-customer-promo .customer-booking-head-logo img{display:block!important;width:100%!important;height:100%!important;max-width:68px!important;max-height:68px!important;object-fit:contain!important}
-html body #page-customer-promo .customer-booking-head-copy{display:block!important;flex:1 1 auto!important;min-width:0!important;text-align:left!important}
-html body #page-customer-promo .customer-booking-head-copy h2{margin:0!important;color:#13224f!important;font-size:clamp(.88rem,3.4vw,1.15rem)!important;line-height:1.15!important;letter-spacing:.045em!important;font-weight:950!important}
-html body #page-customer-promo .customer-booking-head-copy h2 span{display:block!important}
-html body #page-customer-promo .customer-booking-head-copy h2 span:last-child{font-size:.88em!important}
 /* grid poster (masonry) */
 #page-customer-promo .promo-grid{column-count:2;column-gap:10px;margin-top:14px}
-@media(min-width:700px){#page-customer-promo .promo-grid{column-count:3;column-gap:14px}}
-@media(min-width:1000px){#page-customer-promo .promo-grid{column-count:4}}
+#page-customer-promo .promo-grid.single{column-count:1;max-width:440px;margin-left:auto;margin-right:auto}
+@media(min-width:700px){#page-customer-promo .promo-grid,#page-customer-promo .promo-grid.single{column-count:auto;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:16px;max-width:none}}
+@media(min-width:700px){#page-customer-promo .promo-card{width:300px!important;margin:0!important}}
 #page-customer-promo .promo-card{display:block;width:100%;break-inside:avoid;margin:0 0 10px;padding:0;border:1px solid rgba(255,255,255,.9);border-radius:16px;overflow:hidden;background:#e2e8f0;box-shadow:0 8px 20px rgba(2,6,23,.22);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s}
 #page-customer-promo .promo-card:active{transform:scale(.97)}
 #page-customer-promo .promo-card img{display:block;width:100%;height:auto;background:#e2e8f0}
-#page-customer-promo .promo-empty{column-span:all;text-align:center;padding:34px 16px;border-radius:18px;background:rgba(255,255,255,.92);color:#13224f;font-size:.8rem;font-weight:800;line-height:1.5}
+#page-customer-promo .promo-empty{column-span:all;width:100%;box-sizing:border-box;text-align:center;padding:34px 16px;border-radius:18px;background:rgba(255,255,255,.92);color:#13224f;font-size:.8rem;font-weight:800;line-height:1.5}
 #page-customer-promo .promo-empty small{display:block;margin-top:4px;color:#64748b;font-weight:700;font-size:.68rem}
 /* penampil poster layar penuh */
 #promo-viewer{position:fixed;inset:0;z-index:2147483000;display:none;flex-direction:column;background:rgba(2,6,23,.95);touch-action:pan-x pan-y pinch-zoom}
@@ -26515,8 +26524,20 @@ html body #page-customer-promo .customer-booking-head-copy h2 span:last-child{fo
 body.promo-viewer-open{overflow:hidden!important}
 </style>
 <script type="module" id="customer-promo-script">
-import { getApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+/* Modul Firebase untuk Promo baru diminta saat menu Promo dibuka pertama kali (bukan saat halaman dimuat) */
+let getApp, getDatabase, ref, onValue, get, modsPromise = null;
+function loadMods() {
+    if (!modsPromise) {
+        modsPromise = Promise.all([
+            import("https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"),
+            import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js")
+        ]).then(function (m) {
+            getApp = m[0].getApp;
+            getDatabase = m[1].getDatabase; ref = m[1].ref; onValue = m[1].onValue; get = m[1].get;
+        }).catch(function (e) { modsPromise = null; throw e; });
+    }
+    return modsPromise;
+}
 
 const META_PATH = 'settings/promoMeta';
 const FULL_PATH = 'settings/promoFull';
@@ -26541,6 +26562,7 @@ function render(data) {
         .sort((a, b) => b.createdAt - a.createdAt);
     if (!items.length) { showMsg('Belum ada promo saat ini', 'Pantau terus menu ini untuk promo terbaru dari Sandaga Minisoccer.'); return; }
     listEl.textContent = '';
+    listEl.classList.toggle('single', items.length === 1);
     const frag = document.createDocumentFragment();
     items.forEach((it, i) => {
         const b = document.createElement('button');
@@ -26558,10 +26580,30 @@ function render(data) {
         frag.appendChild(b);
     });
     listEl.appendChild(frag);
+    // poster tunggal ditampilkan besar: ganti gambar kecil dengan versi penuh agar tetap tajam
+    if (items.length === 1) {
+        const it = items[0], img = listEl.querySelector('.promo-card img');
+        loadFull(it).then(v => { if (v && img && items.length === 1 && items[0].id === it.id) img.src = v; });
+    }
+}
+function loadFull(it) {
+    if (fullCache[it.id]) return Promise.resolve(fullCache[it.id]);
+    let db; try { db = getDatabase(getApp()); } catch (e) { return Promise.resolve(null); }
+    return get(ref(db, FULL_PATH + '/' + it.id)).then(s => {
+        const v = s.val();
+        if (typeof v === 'string' && IMG_RE.test(v)) { fullCache[it.id] = v; return v; }
+        return null;
+    }).catch(() => null);
 }
 
 function start() {
     if (started) return;
+    if (!getApp) {
+        loadMods().then(start).catch(function () {
+            showMsg('Poster promo belum bisa dimuat', 'Periksa koneksi internet lalu buka menu ini lagi.');
+        });
+        return;
+    }
     let db;
     try { db = getDatabase(getApp()); } catch (e) { setTimeout(start, 400); return; }
     started = true;
@@ -26578,14 +26620,59 @@ function start() {
 
 /* ---------- penampil layar penuh ---------- */
 let viewer = null;
+const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const fileCache = {};
+function fileKey(it, full) { return it.id + (full ? ':f' : ':t'); }
+// File disiapkan lebih dulu agar tombol Bagikan di iPhone langsung berjalan saat disentuh
+function prepareFile(it, full) {
+    const key = fileKey(it, full);
+    if (fileCache[key]) return;
+    const src = full ? fullCache[it.id] : it.thumb;
+    if (!src) return;
+    fileCache[key] = fetch(src).then(r => r.blob()).then(b => new File([b], 'promo-sandaga-' + it.id + '.jpg', { type: 'image/jpeg' })).catch(() => null);
+    fileCache[key].then(f => { if (f) fileCache[key] = f; else delete fileCache[key]; });
+}
+function downloadCurrent(it) {
+    const src = fullCache[it.id] || it.thumb;
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = 'promo-sandaga-' + it.id + '.jpg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+async function saveCurrent() {
+    const it = items[viewerIndex];
+    if (!it) return;
+    if (IS_IOS && navigator.share) {
+        try {
+            const full = !!fullCache[it.id];
+            prepareFile(it, full);
+            let f = fileCache[fileKey(it, full)];
+            if (f && typeof f.then === 'function') f = await f;
+            if (f && navigator.canShare && navigator.canShare({ files: [f] })) {
+                await navigator.share({ files: [f], title: 'Promo Sandaga Minisoccer' });
+                return;
+            }
+        } catch (e) {
+            if (e && e.name === 'AbortError') return;
+        }
+        alert('Tekan lama gambar poster, lalu pilih “Simpan ke Foto”.');
+        return;
+    }
+    downloadCurrent(it);
+}
 function buildViewer() {
     viewer = document.createElement('div');
     viewer.id = 'promo-viewer';
     viewer.setAttribute('role', 'dialog');
     viewer.setAttribute('aria-modal', 'true');
-    viewer.innerHTML = '<div class="pv-top"><span class="pv-count"></span><div class="pv-actions"><a class="pv-btn pv-dl" download="promo-sandaga.jpg" href="#">Simpan</a><button type="button" class="pv-btn pv-close" aria-label="Tutup">✕</button></div></div>' +
+    viewer.innerHTML = '<div class="pv-top"><span class="pv-count"></span><div class="pv-actions"><button type="button" class="pv-btn pv-dl">Simpan</button><button type="button" class="pv-btn pv-close" aria-label="Tutup">✕</button></div></div>' +
         '<div class="pv-stage"><button type="button" class="pv-nav pv-prev" aria-label="Sebelumnya">‹</button><img alt="Poster promo"><button type="button" class="pv-nav pv-next" aria-label="Berikutnya">›</button></div>';
     document.body.appendChild(viewer);
+    const dlBtn = viewer.querySelector('.pv-dl');
+    if (IS_IOS) dlBtn.textContent = 'Bagikan';
+    dlBtn.addEventListener('click', saveCurrent);
     viewer.querySelector('.pv-close').addEventListener('click', closeViewer);
     viewer.querySelector('.pv-prev').addEventListener('click', () => step(-1));
     viewer.querySelector('.pv-next').addEventListener('click', () => step(1));
@@ -26610,11 +26697,10 @@ function show(i) {
     if (!it) return;
     viewerIndex = i;
     const img = viewer.querySelector('.pv-stage img');
-    const dl = viewer.querySelector('.pv-dl');
     viewer.querySelector('.pv-count').textContent = 'Promo ' + (i + 1) + ' / ' + items.length;
     const cached = fullCache[it.id];
     img.src = cached || it.thumb;
-    dl.href = cached || it.thumb;
+    prepareFile(it, !!cached);
     img.classList.toggle('loading', !cached);
     if (!cached) {
         let db; try { db = getDatabase(getApp()); } catch (e) { return; }
@@ -26622,7 +26708,7 @@ function show(i) {
             const v = s.val();
             if (typeof v === 'string' && IMG_RE.test(v)) fullCache[it.id] = v;
             if (viewerIndex === i && viewer.classList.contains('on')) {
-                if (fullCache[it.id]) { img.src = fullCache[it.id]; dl.href = fullCache[it.id]; }
+                if (fullCache[it.id]) { img.src = fullCache[it.id]; prepareFile(it, true); }
                 img.classList.remove('loading');
             }
         }).catch(() => { if (viewerIndex === i) img.classList.remove('loading'); });

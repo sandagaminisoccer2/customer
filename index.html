@@ -6118,6 +6118,20 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <span class="schedule-legend-item flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-rose-600 border border-rose-400 rounded-full"></span> <span class="text-rose-700 font-black">Non-Member</span></span>
 </div>
 </div>
+<!-- HALAMAN PROMO CUSTOMER -->
+<div class="hidden customer-content-page promo-page-transparent" id="page-customer-promo">
+  <div class="customer-booking-page-head">
+    <div class="customer-booking-head-logo" aria-hidden="true">
+      <img data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="">
+    </div>
+    <div class="customer-booking-head-copy">
+      <h2><span>PROMO</span><span>SANDAGA MINISOCCER 2</span></h2>
+    </div>
+  </div>
+  <div class="promo-grid" id="customer-promo-list">
+    <div class="promo-empty">Memuat poster promo...</div>
+  </div>
+</div>
 </main>
 <!-- Script Firebase & Logika Aplikasi -->
 <script type="module">
@@ -6328,7 +6342,8 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
             'customer-price',
             'customer-booking',
             'customer-sparring',
-            'customer-member'
+            'customer-member',
+            'customer-promo'
         ]);
 
         let customerHistoryReady = false;
@@ -10462,6 +10477,15 @@ body:has(#page-customer-sparring:not(.hidden)) > .customer-sticky-back[data-back
 </span>
 <span class="customer-bottom-nav-label">Harga</span>
 </button>
+<button aria-label="Promo" class="customer-bottom-nav-item" data-page="customer-promo" onclick="showPage('customer-promo')" type="button">
+<span aria-hidden="true" class="customer-bottom-nav-icon">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24">
+<path d="M20.5 13.5l-7 7a2 2 0 0 1-2.8 0L3.5 13.3V3.5h9.8l7.2 7.2a2 2 0 0 1 0 2.8z"></path>
+<circle cx="8" cy="8" r="1.3"></circle>
+</svg>
+</span>
+<span class="customer-bottom-nav-label">Promo</span>
+</button>
 </nav>
 <style id="customer-bottom-nav-liquid-glass-v2">
 #customer-bottom-nav {
@@ -10574,7 +10598,7 @@ body:has(#page-customer-booking:not(.hidden)) main,
 body:has(#page-customer-sparring:not(.hidden)) main {
     padding-bottom: 110px !important;
 }
-body:not(:has(#page-home:not(.hidden))):not(:has(#page-customer-schedule:not(.hidden))):not(:has(#page-customer-price:not(.hidden))):not(:has(#page-customer-booking:not(.hidden))):not(:has(#page-customer-sparring:not(.hidden))):not(:has(#page-customer-member:not(.hidden))) #customer-bottom-nav {
+body:not(:has(#page-home:not(.hidden))):not(:has(#page-customer-schedule:not(.hidden))):not(:has(#page-customer-price:not(.hidden))):not(:has(#page-customer-booking:not(.hidden))):not(:has(#page-customer-sparring:not(.hidden))):not(:has(#page-customer-member:not(.hidden))):not(:has(#page-customer-promo:not(.hidden))) #customer-bottom-nav {
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
@@ -10649,7 +10673,8 @@ body:not(:has(#page-home:not(.hidden))):not(:has(#page-customer-schedule:not(.hi
         'customer-price',
         'customer-booking',
         'customer-sparring',
-        'customer-member'
+        'customer-member',
+        'customer-promo'
     ]);
 
     window.updateCustomerBottomNav = function(id) {
@@ -26442,4 +26467,191 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
   }
 }
 </style>
+<!-- ===== MENU PROMO CUSTOMER ===== -->
+<style id="customer-promo-style">
+/* navigasi bawah: 6 menu */
+#customer-bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+@media(max-width:640px){#customer-bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))!important}#customer-bottom-nav .customer-bottom-nav-label{font-size:8.5px!important}}
+body:has(#page-customer-promo:not(.hidden)) #customer-bottom-nav{visibility:visible!important;opacity:1!important;pointer-events:auto!important;display:grid!important}
+body:has(#page-customer-promo:not(.hidden)) main{padding-bottom:110px!important}
+/* tampilan halaman mengikuti menu Sparing: tanpa kaca pembungkus & tanpa header besar */
+body:has(#page-customer-promo:not(.hidden)) > header{display:none!important;visibility:hidden!important;opacity:0!important;height:0!important;min-height:0!important;max-height:0!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;overflow:hidden!important;pointer-events:none!important}
+body:has(#page-customer-promo:not(.hidden)) main{margin-top:0!important;padding-top:0!important}
+html body #page-customer-promo,html body #page-customer-promo.customer-content-page{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:0!important;margin-top:0!important;overflow:visible!important}
+html body #page-customer-promo::before,html body #page-customer-promo::after{display:none!important;content:none!important}
+html body #page-customer-promo .customer-booking-page-head{width:100%!important;max-width:none!important;margin:0 0 10px!important}
+@media(max-width:640px){html body #page-customer-promo .customer-booking-page-head{position:sticky!important;top:16px!important;z-index:9990!important}}
+@media(max-width:380px){html body #page-customer-promo .customer-booking-page-head{top:6px!important}}
+#page-customer-promo .promo-grid{margin-top:0!important}
+/* header sama seperti menu lain */
+html body #page-customer-promo .customer-booking-page-head{display:flex!important;align-items:center!important;gap:12px!important;margin:0 0 12px!important;padding:12px 15px!important;min-height:88px!important;box-sizing:border-box!important;background:linear-gradient(135deg,#ffffff 0%,#e4f0ff 100%)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:1px solid #fff!important;border-radius:22px!important;box-shadow:0 10px 26px rgba(2,6,23,.22)!important;overflow:hidden!important;opacity:1!important}
+html body #page-customer-promo .customer-booking-head-logo{display:flex!important;flex:0 0 68px!important;width:68px!important;height:68px!important;align-items:center!important;justify-content:center!important}
+html body #page-customer-promo .customer-booking-head-logo img{display:block!important;width:100%!important;height:100%!important;max-width:68px!important;max-height:68px!important;object-fit:contain!important}
+html body #page-customer-promo .customer-booking-head-copy{display:block!important;flex:1 1 auto!important;min-width:0!important;text-align:left!important}
+html body #page-customer-promo .customer-booking-head-copy h2{margin:0!important;color:#13224f!important;font-size:clamp(.88rem,3.4vw,1.15rem)!important;line-height:1.15!important;letter-spacing:.045em!important;font-weight:950!important}
+html body #page-customer-promo .customer-booking-head-copy h2 span{display:block!important}
+html body #page-customer-promo .customer-booking-head-copy h2 span:last-child{font-size:.88em!important}
+/* grid poster (masonry) */
+#page-customer-promo .promo-grid{column-count:2;column-gap:10px;margin-top:14px}
+@media(min-width:700px){#page-customer-promo .promo-grid{column-count:3;column-gap:14px}}
+@media(min-width:1000px){#page-customer-promo .promo-grid{column-count:4}}
+#page-customer-promo .promo-card{display:block;width:100%;break-inside:avoid;margin:0 0 10px;padding:0;border:1px solid rgba(255,255,255,.9);border-radius:16px;overflow:hidden;background:#e2e8f0;box-shadow:0 8px 20px rgba(2,6,23,.22);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s}
+#page-customer-promo .promo-card:active{transform:scale(.97)}
+#page-customer-promo .promo-card img{display:block;width:100%;height:auto;background:#e2e8f0}
+#page-customer-promo .promo-empty{column-span:all;text-align:center;padding:34px 16px;border-radius:18px;background:rgba(255,255,255,.92);color:#13224f;font-size:.8rem;font-weight:800;line-height:1.5}
+#page-customer-promo .promo-empty small{display:block;margin-top:4px;color:#64748b;font-weight:700;font-size:.68rem}
+/* penampil poster layar penuh */
+#promo-viewer{position:fixed;inset:0;z-index:2147483000;display:none;flex-direction:column;background:rgba(2,6,23,.95);touch-action:pan-x pan-y pinch-zoom}
+#promo-viewer.on{display:flex}
+#promo-viewer .pv-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:max(12px,env(safe-area-inset-top)) 14px 10px;color:#fff;font-size:12px;font-weight:800}
+#promo-viewer .pv-actions{display:flex;gap:8px}
+#promo-viewer .pv-btn{display:inline-grid;place-items:center;min-width:40px;height:40px;padding:0 14px;border:0;border-radius:20px;background:rgba(255,255,255,.16);color:#fff;font-size:13px;font-weight:900;text-decoration:none;cursor:pointer}
+#promo-viewer .pv-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 10px max(14px,env(safe-area-inset-bottom))}
+#promo-viewer .pv-stage img{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;transition:opacity .2s}
+#promo-viewer .pv-stage img.loading{opacity:.6}
+#promo-viewer .pv-nav{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:22px;font-weight:900;cursor:pointer}
+#promo-viewer .pv-prev{left:10px}#promo-viewer .pv-next{right:10px}
+@media(max-width:640px){#promo-viewer .pv-nav{display:none}}
+body.promo-viewer-open{overflow:hidden!important}
+</style>
+<script type="module" id="customer-promo-script">
+import { getApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+const META_PATH = 'settings/promoMeta';
+const FULL_PATH = 'settings/promoFull';
+const page = document.getElementById('page-customer-promo');
+const listEl = document.getElementById('customer-promo-list');
+const IMG_RE = /^data:image\//i;
+let started = false, items = [], viewerIndex = -1, fullCache = {};
+
+function showMsg(title, sub) {
+    listEl.textContent = '';
+    const d = document.createElement('div');
+    d.className = 'promo-empty';
+    d.textContent = title;
+    if (sub) { const s = document.createElement('small'); s.textContent = sub; d.appendChild(s); }
+    listEl.appendChild(d);
+}
+
+function render(data) {
+    items = Object.keys(data || {})
+        .filter(k => data[k] && typeof data[k].thumb === 'string' && IMG_RE.test(data[k].thumb))
+        .map(k => ({ id: k, thumb: data[k].thumb, w: data[k].w, h: data[k].h, createdAt: data[k].createdAt || 0 }))
+        .sort((a, b) => b.createdAt - a.createdAt);
+    if (!items.length) { showMsg('Belum ada promo saat ini', 'Pantau terus menu ini untuk promo terbaru dari Sandaga Minisoccer.'); return; }
+    listEl.textContent = '';
+    const frag = document.createDocumentFragment();
+    items.forEach((it, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'promo-card';
+        b.setAttribute('aria-label', 'Lihat poster promo ' + (i + 1));
+        const img = document.createElement('img');
+        img.src = it.thumb;
+        img.alt = 'Poster promo ' + (i + 1);
+        img.decoding = 'async';
+        img.loading = 'lazy';
+        if (it.w && it.h) img.style.aspectRatio = it.w + '/' + it.h;
+        b.appendChild(img);
+        b.addEventListener('click', () => openViewer(i));
+        frag.appendChild(b);
+    });
+    listEl.appendChild(frag);
+}
+
+function start() {
+    if (started) return;
+    let db;
+    try { db = getDatabase(getApp()); } catch (e) { setTimeout(start, 400); return; }
+    started = true;
+    try {
+        onValue(ref(db, META_PATH), snap => render(snap.val()), () => {
+            started = false;
+            showMsg('Poster promo belum bisa dimuat', 'Periksa koneksi internet lalu buka menu ini lagi.');
+        });
+    } catch (e) {
+        started = false;
+        showMsg('Poster promo belum bisa dimuat', 'Periksa koneksi internet lalu buka menu ini lagi.');
+    }
+}
+
+/* ---------- penampil layar penuh ---------- */
+let viewer = null;
+function buildViewer() {
+    viewer = document.createElement('div');
+    viewer.id = 'promo-viewer';
+    viewer.setAttribute('role', 'dialog');
+    viewer.setAttribute('aria-modal', 'true');
+    viewer.innerHTML = '<div class="pv-top"><span class="pv-count"></span><div class="pv-actions"><a class="pv-btn pv-dl" download="promo-sandaga.jpg" href="#">Simpan</a><button type="button" class="pv-btn pv-close" aria-label="Tutup">✕</button></div></div>' +
+        '<div class="pv-stage"><button type="button" class="pv-nav pv-prev" aria-label="Sebelumnya">‹</button><img alt="Poster promo"><button type="button" class="pv-nav pv-next" aria-label="Berikutnya">›</button></div>';
+    document.body.appendChild(viewer);
+    viewer.querySelector('.pv-close').addEventListener('click', closeViewer);
+    viewer.querySelector('.pv-prev').addEventListener('click', () => step(-1));
+    viewer.querySelector('.pv-next').addEventListener('click', () => step(1));
+    viewer.querySelector('.pv-stage').addEventListener('click', e => { if (e.target.classList.contains('pv-stage')) closeViewer(); });
+    let x0 = null;
+    viewer.addEventListener('touchstart', e => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+    viewer.addEventListener('touchend', e => {
+        if (x0 == null) return;
+        const dx = e.changedTouches[0].clientX - x0; x0 = null;
+        if (Math.abs(dx) > 70 && (window.visualViewport ? window.visualViewport.scale <= 1.05 : true)) step(dx < 0 ? 1 : -1);
+    }, { passive: true });
+    document.addEventListener('keydown', e => {
+        if (!viewer.classList.contains('on')) return;
+        if (e.key === 'Escape') closeViewer();
+        else if (e.key === 'ArrowRight') step(1);
+        else if (e.key === 'ArrowLeft') step(-1);
+    });
+}
+
+function show(i) {
+    const it = items[i];
+    if (!it) return;
+    viewerIndex = i;
+    const img = viewer.querySelector('.pv-stage img');
+    const dl = viewer.querySelector('.pv-dl');
+    viewer.querySelector('.pv-count').textContent = 'Promo ' + (i + 1) + ' / ' + items.length;
+    const cached = fullCache[it.id];
+    img.src = cached || it.thumb;
+    dl.href = cached || it.thumb;
+    img.classList.toggle('loading', !cached);
+    if (!cached) {
+        let db; try { db = getDatabase(getApp()); } catch (e) { return; }
+        get(ref(db, FULL_PATH + '/' + it.id)).then(s => {
+            const v = s.val();
+            if (typeof v === 'string' && IMG_RE.test(v)) fullCache[it.id] = v;
+            if (viewerIndex === i && viewer.classList.contains('on')) {
+                if (fullCache[it.id]) { img.src = fullCache[it.id]; dl.href = fullCache[it.id]; }
+                img.classList.remove('loading');
+            }
+        }).catch(() => { if (viewerIndex === i) img.classList.remove('loading'); });
+    }
+}
+function step(d) {
+    if (items.length < 2) return;
+    show((viewerIndex + d + items.length) % items.length);
+}
+function openViewer(i) {
+    if (!viewer) buildViewer();
+    viewer.classList.add('on');
+    document.body.classList.add('promo-viewer-open');
+    show(i);
+}
+function closeViewer() {
+    if (!viewer) return;
+    viewer.classList.remove('on');
+    document.body.classList.remove('promo-viewer-open');
+    viewerIndex = -1;
+}
+
+/* mulai memuat saat menu Promo pertama kali dibuka; tutup penampil bila pindah menu */
+function onPageChange() {
+    if (!page.classList.contains('hidden')) start();
+    else closeViewer();
+}
+new MutationObserver(onPageChange).observe(page, { attributes: true, attributeFilter: ['class'] });
+onPageChange();
+</script>
+
 </body></html>

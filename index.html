@@ -26479,7 +26479,6 @@ body:has(#page-customer-promo:not(.hidden)) > header{display:none!important;visi
 body:has(#page-customer-promo:not(.hidden)) main{margin-top:0!important;padding-top:0!important}
 html body #page-customer-promo,html body #page-customer-promo.customer-content-page{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:0!important;margin-top:0!important;overflow:visible!important}
 html body #page-customer-promo::before,html body #page-customer-promo::after{display:none!important;content:none!important}
-#page-customer-promo .promo-grid{margin-top:8px!important}
 /* ===== HEADER PROMO = SAMA PERSIS DENGAN MENU LAIN (mobile: fixed seperti Booking/Sparing) ===== */
 @media(max-width:640px){
   html body:not(#_a):not(#_b):not(#_c) #page-customer-promo{position:relative!important;padding-top:87px!important;overflow:visible!important}
@@ -26502,13 +26501,32 @@ html body #page-customer-promo::before,html body #page-customer-promo::after{dis
 /* grid poster (masonry) */
 #page-customer-promo .promo-grid{column-count:2;column-gap:10px;margin-top:14px}
 #page-customer-promo .promo-grid.single{column-count:1;max-width:440px;margin-left:auto;margin-right:auto}
-@media(min-width:700px){#page-customer-promo .promo-grid,#page-customer-promo .promo-grid.single{column-count:auto;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:16px;max-width:none}}
-@media(min-width:700px){#page-customer-promo .promo-card{width:300px!important;margin:0!important}}
 #page-customer-promo .promo-card{display:block;width:100%;break-inside:avoid;margin:0 0 10px;padding:0;border:1px solid rgba(255,255,255,.9);border-radius:16px;overflow:hidden;background:#e2e8f0;box-shadow:0 8px 20px rgba(2,6,23,.22);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s}
 #page-customer-promo .promo-card:active{transform:scale(.97)}
 #page-customer-promo .promo-card img{display:block;width:100%;height:auto;background:#e2e8f0}
 #page-customer-promo .promo-empty{column-span:all;width:100%;box-sizing:border-box;text-align:center;padding:34px 16px;border-radius:18px;background:rgba(255,255,255,.92);color:#13224f;font-size:.8rem;font-weight:800;line-height:1.5}
 #page-customer-promo .promo-empty small{display:block;margin-top:4px;color:#64748b;font-weight:700;font-size:.68rem}
+
+/* ===== RAPIKAN TATA LETAK POSTER PROMO ===== */
+/* HP: lebar poster = lebar header & dock (12px dari tepi), jarak header->poster = jarak antar poster (10px) */
+@media(max-width:640px){
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo{padding-left:6px!important;padding-right:6px!important;padding-top:102px!important;padding-bottom:112px!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-grid{margin-top:0!important;column-gap:10px!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-card{margin:0 0 10px!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-empty{margin-bottom:10px}
+}
+@media(max-width:380px){
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo{padding-left:3px!important;padding-right:3px!important;padding-top:86px!important;padding-bottom:104px!important}
+}
+/* Desktop: tinggi semua poster sama (dihitung otomatis agar muat di antara header & dock bar), lebar mengikuti rasio */
+@media(min-width:641px){
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo{padding-bottom:20px!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-page-head{margin-bottom:0!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-grid,html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-grid.single{column-count:auto!important;display:flex!important;flex-wrap:nowrap!important;justify-content:center!important;align-items:flex-start!important;gap:16px!important;max-width:none!important;margin:28px 0 0!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-card{flex:0 0 auto!important;width:auto!important;height:var(--promo-h,520px)!important;aspect-ratio:var(--r,9/16)!important;margin:0!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-card img{width:100%!important;height:100%!important;aspect-ratio:auto!important;object-fit:cover!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-empty{flex:1 1 auto;height:auto}
+}
 /* penampil poster layar penuh */
 #promo-viewer{position:fixed;inset:0;z-index:2147483000;display:none;flex-direction:column;background:rgba(2,6,23,.95);touch-action:pan-x pan-y pinch-zoom}
 #promo-viewer.on{display:flex}
@@ -26574,18 +26592,56 @@ function render(data) {
         img.alt = 'Poster promo ' + (i + 1);
         img.decoding = 'async';
         img.loading = 'lazy';
-        if (it.w && it.h) img.style.aspectRatio = it.w + '/' + it.h;
+        if (it.w && it.h) { img.style.aspectRatio = it.w + '/' + it.h; b.style.setProperty('--r', it.w + '/' + it.h); }
+        else img.addEventListener('load', function () {
+            if (img.naturalWidth && img.naturalHeight) { b.style.setProperty('--r', img.naturalWidth + '/' + img.naturalHeight); fitDesktop(); }
+        });
         b.appendChild(img);
         b.addEventListener('click', () => openViewer(i));
         frag.appendChild(b);
     });
     listEl.appendChild(frag);
+    fitDesktop(); setTimeout(fitDesktop, 300);
     // poster tunggal ditampilkan besar: ganti gambar kecil dengan versi penuh agar tetap tajam
     if (items.length === 1) {
         const it = items[0], img = listEl.querySelector('.promo-card img');
         loadFull(it).then(v => { if (v && img && items.length === 1 && items[0].id === it.id) img.src = v; });
     }
 }
+/* Desktop: semua poster sama tinggi; tinggi dibatasi ruang antara header dan dock bar serta lebar layar */
+function fitDesktop() {
+    if (!window.matchMedia('(min-width:641px)').matches) {
+        listEl.style.removeProperty('--promo-h'); listEl.style.removeProperty('margin-top'); return;
+    }
+    if (page.classList.contains('hidden')) return;
+    const cards = Array.prototype.slice.call(listEl.querySelectorAll('.promo-card'));
+    if (!cards.length) return;
+    const GAP = 12;
+    const head = page.querySelector('.customer-booking-page-head');
+    const dock = document.getElementById('customer-bottom-nav');
+    // posisi poster = tepat di bawah header (ukuran & posisi sticky asli) + GAP
+    const stick = head ? (parseFloat(getComputedStyle(head).top) || 0) : 16;
+    const headH = head ? head.offsetHeight : 104;
+    listEl.style.setProperty('margin-top', '0px', 'important');
+    const base = listEl.getBoundingClientRect().top + (window.pageYOffset || 0);
+    const wantTop = Math.max(stick, base - headH) + headH + GAP;
+    listEl.style.setProperty('margin-top', Math.max(0, Math.round(wantTop - base)) + 'px', 'important');
+    const dockTop = dock && dock.offsetHeight ? dock.getBoundingClientRect().top : window.innerHeight - 118;
+    const availH = dockTop - GAP - wantTop;
+    let sumR = 0;
+    cards.forEach(function (c) {
+        const r = (c.style.getPropertyValue('--r') || '9/16').split('/');
+        sumR += (parseFloat(r[0]) / (parseFloat(r[1]) || 1)) || (9 / 16);
+    });
+    const availW = listEl.clientWidth || page.clientWidth;
+    const byW = (availW - 16 * (cards.length - 1)) / sumR;
+    const H = Math.max(200, Math.floor(Math.min(availH, byW)));
+    listEl.style.setProperty('--promo-h', H + 'px');
+}
+window.addEventListener('resize', fitDesktop);
+window.addEventListener('orientationchange', fitDesktop);
+window.addEventListener('load', function () { fitDesktop(); setTimeout(fitDesktop, 400); });
+
 function loadFull(it) {
     if (fullCache[it.id]) return Promise.resolve(fullCache[it.id]);
     let db; try { db = getDatabase(getApp()); } catch (e) { return Promise.resolve(null); }
@@ -26733,7 +26789,7 @@ function closeViewer() {
 
 /* mulai memuat saat menu Promo pertama kali dibuka; tutup penampil bila pindah menu */
 function onPageChange() {
-    if (!page.classList.contains('hidden')) start();
+    if (!page.classList.contains('hidden')) { start(); fitDesktop(); }
     else closeViewer();
 }
 new MutationObserver(onPageChange).observe(page, { attributes: true, attributeFilter: ['class'] });

@@ -26522,7 +26522,7 @@ html body #page-customer-promo::before,html body #page-customer-promo::after{dis
 @media(min-width:641px){
   html body:not(#_a):not(#_b):not(#_c) #page-customer-promo{padding-bottom:20px!important}
   html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .customer-booking-page-head{margin-bottom:0!important}
-  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-grid,html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-grid.single{column-count:auto!important;display:flex!important;flex-wrap:nowrap!important;justify-content:center!important;align-items:flex-start!important;gap:16px!important;max-width:none!important;margin:28px 0 0!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-grid,html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-grid.single{column-count:auto!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;align-items:flex-start!important;gap:16px!important;max-width:none!important;margin:28px 0 0!important}
   html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-card{flex:0 0 auto!important;width:auto!important;height:var(--promo-h,520px)!important;aspect-ratio:var(--r,9/16)!important;margin:0!important}
   html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-card img{width:100%!important;height:100%!important;aspect-ratio:auto!important;object-fit:cover!important}
   html body:not(#_a):not(#_b):not(#_c) #page-customer-promo .promo-empty{flex:1 1 auto;height:auto}
@@ -26611,7 +26611,7 @@ function render(data) {
 /* Desktop: semua poster sama tinggi; tinggi dibatasi ruang antara header dan dock bar serta lebar layar */
 function fitDesktop() {
     if (!window.matchMedia('(min-width:641px)').matches) {
-        listEl.style.removeProperty('--promo-h'); listEl.style.removeProperty('margin-top'); return;
+        ['--promo-h','margin-top','margin-left','margin-right','margin-bottom','max-width'].forEach(function (k) { listEl.style.removeProperty(k); }); listEl.classList.remove('promo-wrap'); return;
     }
     if (page.classList.contains('hidden')) return;
     const cards = Array.prototype.slice.call(listEl.querySelectorAll('.promo-card'));
@@ -26628,15 +26628,33 @@ function fitDesktop() {
     listEl.style.setProperty('margin-top', Math.max(0, Math.round(wantTop - base)) + 'px', 'important');
     const dockTop = dock && dock.offsetHeight ? dock.getBoundingClientRect().top : window.innerHeight - 118;
     const availH = dockTop - GAP - wantTop;
+    // maksimal 5 poster per baris; poster ke-6 dan seterusnya turun ke baris berikutnya (halaman di-scroll)
+    const PER_ROW = 5, ROW_GAP = 16;
+    const wrap = cards.length > PER_ROW;
+    const rowCards = wrap ? cards.slice(0, PER_ROW) : cards;
     let sumR = 0;
-    cards.forEach(function (c) {
+    rowCards.forEach(function (c) {
         const r = (c.style.getPropertyValue('--r') || '9/16').split('/');
         sumR += (parseFloat(r[0]) / (parseFloat(r[1]) || 1)) || (9 / 16);
     });
+    listEl.classList.toggle('promo-wrap', wrap);
+    listEl.style.removeProperty('max-width');
     const availW = listEl.clientWidth || page.clientWidth;
-    const byW = (availW - 16 * (cards.length - 1)) / sumR;
+    const byW = (availW - ROW_GAP * (rowCards.length - 1)) / sumR;
     const H = Math.max(200, Math.floor(Math.min(availH, byW)));
     listEl.style.setProperty('--promo-h', H + 'px');
+    if (wrap) {
+        // lebar blok = lebar 5 poster, supaya baris pertama pas 5 dan sisanya turun ke bawah
+        const w5 = Math.ceil(H * sumR) + ROW_GAP * (PER_ROW - 1) + 2;
+        listEl.style.setProperty('max-width', w5 + 'px', 'important');
+        listEl.style.setProperty('margin-left', 'auto', 'important');
+        listEl.style.setProperty('margin-right', 'auto', 'important');
+        // ruang di bawah agar baris terakhir tidak tertutup dock bar
+        const below = dock && dock.offsetHeight ? Math.max(0, window.innerHeight - dockTop) : 118;
+        listEl.style.setProperty('margin-bottom', (below + GAP) + 'px', 'important');
+    } else {
+        ['margin-left', 'margin-right', 'margin-bottom'].forEach(function (k) { listEl.style.removeProperty(k); });
+    }
 }
 window.addEventListener('resize', fitDesktop);
 window.addEventListener('orientationchange', fitDesktop);

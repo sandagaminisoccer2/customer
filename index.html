@@ -6184,8 +6184,9 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
                 } catch(e) { resolve(src); }
             });
         }
-        const LOGO_MAX_PX = 256, LOGO_QUALITY = 0.8, LOGO_SKIP_BELOW = 12000;
-        const LOGO_LS_PREFIX = 'sandagaLogoC1:', LOGO_LS_TTL = 6 * 3600 * 1000;
+        const LOGO_MAX_PX = 256, LOGO_QUALITY = 0.8, LOGO_SKIP_BELOW = Infinity; /* Infinity = logo tim tidak dikompres (tetap tajam) */
+        try{ Object.keys(localStorage).filter(k => k.indexOf('sandagaLogoC1:') === 0).forEach(k => localStorage.removeItem(k)); }catch(e){}
+        const LOGO_LS_PREFIX = 'sandagaLogoC2:', LOGO_LS_TTL = 6 * 3600 * 1000;
         async function compressTeamLogoEntry(entry) {
             if(!entry || !entry.logo) return entry;
             const before = logoToDataUrlCustomer(entry.logo);

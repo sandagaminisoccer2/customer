@@ -29,7 +29,8 @@
     'latar.png':{max:1080,q:.8,v:'--img-latar'},
     'latardekstop.png':{max:1920,q:.8,v:'--img-latardekstop'},
     'latarsparing.png':{max:1400,q:.85,v:'--img-latarsparing'},
-    'latarlawan.png':{max:1400,q:.85,v:'--img-latarlawan'}
+    'latarlawan.png':{max:1400,q:.85,v:'--img-latarlawan'},
+    'latarreward.png':{max:1600,q:.85,v:'--img-latarreward'}
   };
   var mem={}, root=document.documentElement;
   function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
@@ -6149,6 +6150,18 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
     </div>
   </div>
   <div class="loy-wrap">
+    <div class="loy-poster-box">
+      <div class="loy-poster loy-poster--stamp" id="loy-poster" role="button" tabindex="0" aria-label="Poster Team Loyalty Reward. Ketuk untuk memperbesar">
+        <span class="loy-logo" id="loy-logo" aria-hidden="true"></span>
+        <span class="loy-pos" style="left:49.5%"><i></i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+        <span class="loy-pos" style="left:59%"><i></i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+        <span class="loy-pos" style="left:67.9%"><i></i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+        <span class="loy-pos" style="left:76.9%"><i></i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+        <span class="loy-pos" style="left:85.9%"><i></i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+      </div>
+      <div class="loy-poster loy-poster--voucher" id="loy-poster-voucher" role="button" tabindex="0" hidden aria-label="Poster Voucher Team Loyalty Reward. Ketuk untuk memperbesar"></div>
+      <div class="loy-poster-tip">Ketuk poster untuk memperbesar</div>
+    </div>
     <div class="loy-card">
       <label class="loy-label" for="loy-team-input">Nama tim</label>
       <div class="loy-row">
@@ -6171,6 +6184,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
     </div>
   </div>
 </div>
+<div id="loy-zoom" aria-hidden="true"><button type="button" id="loy-zoom-close" aria-label="Tutup">×</button><div class="loy-zoom-scroll"><div class="loy-zoom-inner" id="loy-zoom-inner"></div></div></div>
 </main>
 <!-- Script Firebase & Logika Aplikasi -->
 <script type="module">
@@ -6268,10 +6282,12 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
             };
             const startPosterBg = () => onValue(ref(db, 'settings/posterBackground'), async (snap) => {
                 const d = snap.val() || {};
-                const [sp, lw] = await Promise.all([posterSmall(d.sparing), posterSmall(d.lawan)]);
+                const [sp, lw, rwp, rwv] = await Promise.all([posterSmall(d.sparing), posterSmall(d.lawan), posterSmall(d.rewardPoin), posterSmall(d.rewardVoucher)]);
                 let css = '';
                 if (sp) css += '#mf-poster.mf-pending{background-image:url("' + sp + '") !important;}';
                 if (lw) css += '#mf-poster:not(.mf-pending){background-image:url("' + lw + '") !important;}';
+                if (rwp) css += '.loy-poster--stamp{background-image:url("' + rwp + '") !important;background-size:100% 100% !important;background-position:center !important;}';
+                if (rwv) css += '.loy-poster--voucher{background-image:url("' + rwv + '") !important;background-size:100% 100% !important;background-position:center !important;}';
                 if (!styleEl) {
                     styleEl = document.createElement('style');
                     styleEl.id = 'poster-bg-from-admin';
@@ -6742,17 +6758,85 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
         }
 
         let loyaltyLookupToken = 0;
+        // Poin tim ditempel di atas 5 lingkaran bola pada poster reward (null = tampilan poster asli).
+        // Logo tim di sisi kiri poster pencatat main (data dari Firebase: teamLogos, sama dengan menu Member/Sparing).
+        let loyLogoToken = 0;
+        function updateLoyaltyLogo(names) {
+            const box = document.getElementById('loy-logo');
+            if(!box) return;
+            const myToken = ++loyLogoToken;
+            const list = (names || []).map(n => String(n || '').trim()).filter((n, i, a) => n && a.indexOf(n) === i);
+            const hide = () => { box.classList.remove('show'); box.innerHTML = ''; };
+            if(!list.length) { hide(); return; }
+            const render = () => {
+                if(myToken !== loyLogoToken) return;
+                for(const n of list) {
+                    const url = getCustomerTeamLogo(n);
+                    if(url) {
+                        box.innerHTML = '';
+                        const img = new Image();
+                        img.alt = ''; img.decoding = 'async'; img.draggable = false; img.src = url;
+                        box.appendChild(img);
+                        box.classList.add('show');
+                        return;
+                    }
+                }
+                if(list.some(n => getTeamLogoStatus(n) === 'loading')) { box.innerHTML = logoSpinnerHtml(); box.classList.add('show'); }
+                else hide();
+            };
+            render();
+            list.forEach(n => requestTeamLogo(n, render));
+        }
+        // Poster voucher hanya tampil bila tim sudah memenuhi syarat 5 booking & masih punya voucher aktif.
+        function updateLoyaltyExtras(info) {
+            const v = document.getElementById('loy-poster-voucher');
+            if(v) v.hidden = !(info && info.available > 0);
+            const typed = document.getElementById('loy-team-input')?.value || '';
+            updateLoyaltyLogo(info ? [info.nama, typed] : null);
+        }
+        function updateLoyaltyPoster(filled) {
+            if(filled === null || filled === undefined) updateLoyaltyExtras(null);
+            document.querySelectorAll('.loy-poster').forEach(poster => {
+                poster.classList.toggle('has-data', filled !== null && filled !== undefined);
+                poster.querySelectorAll('.loy-pos').forEach((el, i) => {
+                    const on = filled !== null && filled !== undefined && i < filled;
+                    el.classList.toggle('is-on', on);
+                    el.classList.toggle('is-off', filled !== null && filled !== undefined && !on);
+                });
+            });
+        }
+        (function initLoyaltyPosterZoom() {
+            const posters = Array.from(document.querySelectorAll('#page-customer-loyalty .loy-poster'));
+            const zoom = document.getElementById('loy-zoom');
+            const inner = document.getElementById('loy-zoom-inner');
+            const closeBtn = document.getElementById('loy-zoom-close');
+            if(!posters.length || !zoom || !inner) return;
+            const close = () => { zoom.classList.remove('open'); zoom.setAttribute('aria-hidden', 'true'); inner.innerHTML = ''; document.documentElement.classList.remove('loy-zoom-lock'); };
+            const open = (poster) => {
+                const clone = poster.cloneNode(true);
+                clone.removeAttribute('id'); clone.removeAttribute('tabindex'); clone.removeAttribute('role'); clone.removeAttribute('hidden');
+                clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+                inner.innerHTML = ''; inner.appendChild(clone);
+                zoom.classList.add('open'); zoom.setAttribute('aria-hidden', 'false');
+                document.documentElement.classList.add('loy-zoom-lock');
+            };
+            posters.forEach(poster => {
+                poster.addEventListener('click', () => open(poster));
+                poster.addEventListener('keydown', ev => { if(ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(poster); } });
+            });
+            zoom.addEventListener('click', ev => { if(ev.target === zoom || ev.target.closest('.loy-poster') || ev.target.classList.contains('loy-zoom-scroll') || ev.target === inner) close(); });
+            if(closeBtn) closeBtn.addEventListener('click', close);
+            document.addEventListener('keydown', ev => { if(ev.key === 'Escape' && zoom.classList.contains('open')) close(); });
+        })();
         function renderLoyaltyResult(info, errorMsg) {
             const box = document.getElementById('loy-result');
             if(!box) return;
-            if(errorMsg) { box.innerHTML = `<div class="loy-hint loy-error">${loyaltyEsc(errorMsg)}</div>`; return; }
-            if(!info) { box.innerHTML = '<div class="loy-hint">Masukkan nama tim yang sama dengan saat booking untuk melihat poin dan voucher kamu.</div>'; return; }
+            if(errorMsg) { updateLoyaltyPoster(null); box.innerHTML = `<div class="loy-hint loy-error">${loyaltyEsc(errorMsg)}</div>`; return; }
+            if(!info) { updateLoyaltyPoster(null); box.innerHTML = '<div class="loy-hint">Masukkan nama tim yang sama dengan saat booking untuk melihat poin dan voucher kamu.</div>'; return; }
             const rem = info.poin % LOYALTY_POINTS_TARGET;
             const filled = (info.poin > 0 && rem === 0) ? LOYALTY_POINTS_TARGET : rem;
-            let stamps = '';
-            for(let i = 1; i <= LOYALTY_POINTS_TARGET; i++) {
-                stamps += `<span class="loy-stamp${i <= filled ? ' on' : ''}">${i <= filled ? '⚽' : i}</span>`;
-            }
+            updateLoyaltyPoster(filled);
+            updateLoyaltyExtras(info);
             const need = LOYALTY_POINTS_TARGET - rem;
             const progressText = (info.poin > 0 && rem === 0)
                 ? 'Target 5 poin tercapai! 🎉'
@@ -6763,7 +6847,6 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
             box.innerHTML = `
                 <div class="loy-team">${loyaltyEsc(info.nama)}</div>
                 <div class="loy-points"><b>${info.poin}</b> poin total</div>
-                <div class="loy-stamps">${stamps}</div>
                 <div class="loy-progress">${progressText}</div>
                 ${voucherHtml}
                 <div class="loy-meta">Voucher diperoleh: ${info.earned} · Terpakai: ${info.used}</div>`;
@@ -6786,6 +6869,7 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
             const token = ++loyaltyLookupToken;
             const box = document.getElementById('loy-result');
             if(box) box.innerHTML = '<div class="loy-hint">Memuat data poin...</div>';
+            updateLoyaltyPoster(null);
             try {
                 const info = await fetchLoyalty(name);
                 if(token !== loyaltyLookupToken) return;
@@ -27188,5 +27272,41 @@ html body #page-customer-loyalty::before,html body #page-customer-loyalty::after
 .loy-voucher-check input{width:20px;height:20px;margin-top:2px;flex:0 0 auto;accent-color:#d97706}
 .loy-voucher-check b{display:block;font-size:.82rem;font-weight:900}
 .loy-voucher-check small{display:block;font-size:.68rem;font-weight:700;opacity:.75;margin-top:2px}
+</style>
+<style id="customer-loyalty-poster-style">
+/* ===== POSTER TEAM LOYALTY REWARD (latar dari admin: settings/posterBackground/reward, bawaan latarreward.png) ===== */
+#page-customer-loyalty .loy-poster-box{display:flex;flex-direction:column;gap:6px}
+.loy-poster{--loy-pos-top:60.4%;--loy-logo-left:5%;--loy-logo-size:70%;--loy-logo-maxw:38%;position:relative;width:100%;aspect-ratio:3/1;border-radius:16px;overflow:hidden;background-image:var(--img-latarreward,url('latarreward.png'));background-size:100% 200%;background-position:center top;background-repeat:no-repeat;background-color:#0b1d4d;box-shadow:0 10px 26px rgba(2,6,23,.28);cursor:zoom-in;-webkit-tap-highlight-color:transparent;outline:none}
+.loy-poster:focus-visible{box-shadow:0 0 0 3px rgba(96,165,250,.9),0 10px 26px rgba(2,6,23,.28)}
+.loy-poster-tip{text-align:center;font-size:.62rem;font-weight:800;color:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.45)}
+/* titik poin: ditempel tepat di atas 5 lingkaran bola pada tiket atas */
+/* bawaan: gambar lama (2 tiket atas-bawah) dibelah dua; atas = pencatat main, bawah = voucher */
+.loy-poster--voucher{background-position:center bottom}
+.loy-poster[hidden]{display:none!important}
+#page-customer-loyalty .loy-poster-box{gap:8px}
+/* logo tim: sisi kiri poster pencatat main (atur lewat --loy-logo-left / --loy-logo-size bila perlu) */
+.loy-logo{position:absolute;left:var(--loy-logo-left);top:50%;height:var(--loy-logo-size);width:auto;max-width:var(--loy-logo-maxw);transform:translateY(-50%);display:none;align-items:center;justify-content:flex-start;overflow:visible;pointer-events:none}
+.loy-logo.show{display:flex}
+.loy-logo img{display:block;flex:0 0 auto;height:100%;width:auto;max-height:100%;max-width:100%;object-fit:contain;object-position:left center;border-radius:0;filter:drop-shadow(0 3px 8px rgba(2,6,23,.45))}
+.loy-logo .logo-loading-spinner{height:38%;width:auto;aspect-ratio:1/1;min-width:0;max-width:none;border-color:rgba(37,99,235,.18);border-top-color:#2563eb}
+.loy-pos{position:absolute;top:var(--loy-pos-top);width:8.2%;aspect-ratio:1/1;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none}
+.loy-pos i{position:absolute;inset:0;border-radius:50%;background:transparent;transition:background .25s ease,box-shadow .25s ease}
+.loy-pos svg{position:absolute;right:-6%;top:-6%;width:34%;height:34%;padding:6%;box-sizing:border-box;border-radius:50%;background:#16a34a;border:2px solid #fff;fill:none;stroke:#fff;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;opacity:0;transform:scale(.4);transition:opacity .25s ease,transform .25s ease}
+.loy-poster.has-data .loy-pos.is-off i{background:rgba(248,250,252,.78)}
+.loy-poster.has-data .loy-pos.is-on i{box-shadow:0 0 0 2px rgba(34,197,94,.95),0 0 14px 3px rgba(34,197,94,.55)}
+.loy-poster.has-data .loy-pos.is-on svg{opacity:1;transform:scale(1)}
+/* tampilan diperbesar */
+html.loy-zoom-lock,html.loy-zoom-lock body{overflow:hidden!important}
+#loy-zoom{position:fixed;inset:0;z-index:2147483000;display:none;background:rgba(2,6,23,.92);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#loy-zoom.open{display:block}
+#loy-zoom .loy-zoom-scroll{position:absolute;inset:0;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;align-items:center;padding:56px 12px 24px}
+#loy-zoom .loy-zoom-inner{margin:auto;width:max(100%,860px);max-width:1500px;flex:0 0 auto}
+#loy-zoom .loy-poster{cursor:zoom-out;border-radius:12px}
+#loy-zoom-close{position:absolute;top:max(12px,env(safe-area-inset-top,0px));right:12px;z-index:2;width:40px;height:40px;border:0;border-radius:12px;background:rgba(255,255,255,.95);color:#0f172a;font-size:24px;font-weight:900;line-height:1;cursor:pointer}
+#page-customer-loyalty .loy-result .loy-team{font-size:.95rem;letter-spacing:.02em;text-transform:uppercase;color:#132a5e}
+#page-customer-loyalty .loy-result .loy-points{margin:2px 0 8px}
+#page-customer-loyalty .loy-result .loy-progress{margin:8px 0 10px}
+#page-customer-loyalty .loy-poster-box{margin-bottom:2px}
+@media(min-width:641px){#page-customer-loyalty .loy-wrap{max-width:760px}}
 </style>
 </body></html>

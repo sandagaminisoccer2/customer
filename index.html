@@ -5938,6 +5938,13 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
 <label for="cust-nama" class="booking-stack-label">⚽ Nama tim / pemesan</label>
 <input class="booking-flat-control" id="cust-nama" placeholder="cth. Tim Garuda FC" required="" type="text"/>
 </div>
+<!-- Voucher Team Loyalty Reward -->
+<div class="booking-glass-card booking-field-stack" id="cust-voucher-wrap" style="display:none">
+<label class="loy-voucher-check" for="cust-voucher-use">
+<input id="cust-voucher-use" type="checkbox"/>
+<span><b>🎟️ Pakai voucher Loyalty Rp50.000</b><small id="cust-voucher-text"></small></span>
+</label>
+</div>
 <!-- WhatsApp -->
 <div class="booking-glass-card booking-field-stack">
 <label for="cust-hp" class="booking-stack-label">📱 Nomor WhatsApp</label>
@@ -6130,6 +6137,38 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
   </div>
   <div class="promo-grid" id="customer-promo-list">
     <div class="promo-empty">Memuat poster promo...</div>
+  </div>
+</div>
+<div class="hidden customer-content-page loyalty-page-transparent" id="page-customer-loyalty">
+  <div class="customer-booking-page-head">
+    <div class="customer-booking-head-logo" aria-hidden="true">
+      <img data-io="1" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 1x" src="logo.png" alt="">
+    </div>
+    <div class="customer-booking-head-copy">
+      <h2><span>TEAM LOYALTY REWARD</span><span>SANDAGA MINISOCCER 2</span></h2>
+    </div>
+  </div>
+  <div class="loy-wrap">
+    <div class="loy-card">
+      <label class="loy-label" for="loy-team-input">Nama tim</label>
+      <div class="loy-row">
+        <input class="loy-input" id="loy-team-input" type="text" autocomplete="off" placeholder="cth. Tim Garuda FC" maxlength="60">
+        <button class="loy-btn" id="loy-check-btn" type="button">Cek Poin</button>
+      </div>
+      <div id="loy-result" class="loy-result" aria-live="polite">
+        <div class="loy-hint">Masukkan nama tim yang sama dengan saat booking untuk melihat poin dan voucher kamu.</div>
+      </div>
+    </div>
+    <div class="loy-card loy-rules">
+      <div class="loy-rules-title">🎁 Cara kerja</div>
+      <ul>
+        <li>Setiap booking <b>lunas</b> tim <b>non member</b> mendapat <b>1 poin</b>.</li>
+        <li>Poin dihitung dari <b>30 hari terakhir</b> (bergeser setiap hari).</li>
+        <li>Poin dihitung dari transaksi yang benar-benar selesai &amp; lunas, untuk semua tim non member (termasuk lawan sparing), <b>kecuali member</b>.</li>
+        <li>Kumpulkan <b>5 poin</b> dalam 30 hari dan dapatkan <b>voucher Rp50.000</b> untuk booking berikutnya.</li>
+        <li>Voucher dipilih di form Booking dan otomatis dipotong saat pelunasan di admin.</li>
+      </ul>
+    </div>
   </div>
 </div>
 </main>
@@ -6344,7 +6383,8 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
             'customer-booking',
             'customer-sparring',
             'customer-member',
-            'customer-promo'
+            'customer-promo',
+        'customer-loyalty'
         ]);
 
         let customerHistoryReady = false;
@@ -6662,6 +6702,161 @@ body:has(#page-customer-schedule:not(.hidden)) > header{
         const listJam = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "24:00"];
         const listHariKey = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
         let globalCache = { member: {}, memberTanpaJadwal: {}, booking: {}, sparring: {}, pemasukan: {}, minuman: {}, pengeluaran: {}, teamLogos: {} };
+
+        // =====================================================================
+        // TEAM LOYALTY REWARD
+        // - 1 booking lunas tim Non-Member = 1 poin (dihitung oleh web admin dari
+        //   transaksi pelunasan yang benar-benar tercatat lunas; member tidak ikut).
+        // - Setiap 5 poin = 1 voucher Rp50.000 untuk booking berikutnya.
+        // - Data poin disimpan di node 'loyaltyReward/<kunciTim>' (ditulis admin),
+        //   customer hanya membaca data tim yang dicek (bukan seluruh node).
+        // - Voucher yang dipakai ditulis di booking (voucherLoyalty) dan otomatis
+        //   menjadi diskon pada form pelunasan web admin.
+        // =====================================================================
+        const LOYALTY_POINTS_TARGET = 5;
+        const LOYALTY_VOUCHER_VALUE = 50000;
+        const LOYALTY_STORE_KEY = 'sandagaLoyaltyTeam';
+
+        function loyaltyKey(name) {
+            return String(name || '').toLowerCase().replace(/\s*\(booking\)\s*$/i, '').replace(/\s+/g, ' ').trim().replace(/[.#$\/\[\]]/g, '_');
+        }
+        function loyaltyEsc(v) {
+            return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+        }
+        function loyaltyRp(n) { return 'Rp' + Number(n || 0).toLocaleString('id-ID'); }
+
+        async function fetchLoyalty(name) {
+            const key = loyaltyKey(name);
+            if(!key) return null;
+            const snap = await get(ref(db, 'loyaltyReward/' + key));
+            const v = snap.val() || {};
+            const poin = Math.max(0, Math.floor(Number(v.poin || 0)));
+            // Poin & voucher dihitung rolling 30 hari terakhir (diperbarui admin). Voucher yang baru dipakai
+            // dari web ini dicatat di voucherLog agar langsung terhitung sebelum admin memperbarui.
+            const winStart = new Date(); winStart.setHours(12,0,0,0); winStart.setDate(winStart.getDate() - 30);
+            const winStr = getLocalDateString(winStart);
+            const logCount = Object.values(v.voucherLog || {}).filter(t => String(t || '').slice(0,10) >= winStr).length;
+            const used = Math.max(0, Math.floor(Number(v.voucherTerpakai || 0)), logCount);
+            const earned = Math.floor(poin / LOYALTY_POINTS_TARGET);
+            return { key, nama: String(v.nama || name).trim(), poin, used, earned, available: Math.max(0, earned - used) };
+        }
+
+        let loyaltyLookupToken = 0;
+        function renderLoyaltyResult(info, errorMsg) {
+            const box = document.getElementById('loy-result');
+            if(!box) return;
+            if(errorMsg) { box.innerHTML = `<div class="loy-hint loy-error">${loyaltyEsc(errorMsg)}</div>`; return; }
+            if(!info) { box.innerHTML = '<div class="loy-hint">Masukkan nama tim yang sama dengan saat booking untuk melihat poin dan voucher kamu.</div>'; return; }
+            const rem = info.poin % LOYALTY_POINTS_TARGET;
+            const filled = (info.poin > 0 && rem === 0) ? LOYALTY_POINTS_TARGET : rem;
+            let stamps = '';
+            for(let i = 1; i <= LOYALTY_POINTS_TARGET; i++) {
+                stamps += `<span class="loy-stamp${i <= filled ? ' on' : ''}">${i <= filled ? '⚽' : i}</span>`;
+            }
+            const need = LOYALTY_POINTS_TARGET - rem;
+            const progressText = (info.poin > 0 && rem === 0)
+                ? 'Target 5 poin tercapai! 🎉'
+                : `Kurang <b>${need}</b> booking lunas lagi untuk voucher ${loyaltyRp(LOYALTY_VOUCHER_VALUE)}.`;
+            const voucherHtml = info.available > 0
+                ? `<div class="loy-voucher on"><div><b>🎟️ ${info.available} voucher ${loyaltyRp(LOYALTY_VOUCHER_VALUE)}</b><small>Siap dipakai di booking berikutnya</small></div><button type="button" class="loy-btn" id="loy-use-btn">Pakai Voucher</button></div>`
+                : `<div class="loy-voucher"><div><b>🎟️ Belum ada voucher aktif</b><small>${info.earned > 0 ? 'Voucher sebelumnya sudah terpakai.' : 'Voucher muncul setiap kelipatan 5 poin.'}</small></div></div>`;
+            box.innerHTML = `
+                <div class="loy-team">${loyaltyEsc(info.nama)}</div>
+                <div class="loy-points"><b>${info.poin}</b> poin total</div>
+                <div class="loy-stamps">${stamps}</div>
+                <div class="loy-progress">${progressText}</div>
+                ${voucherHtml}
+                <div class="loy-meta">Voucher diperoleh: ${info.earned} · Terpakai: ${info.used}</div>`;
+            const useBtn = document.getElementById('loy-use-btn');
+            if(useBtn) useBtn.onclick = () => {
+                const nameEl = document.getElementById('cust-nama');
+                const statusEl = document.getElementById('cust-status');
+                if(statusEl && statusEl.value !== 'Non-Member') { statusEl.value = 'Non-Member'; statusEl.dispatchEvent(new Event('change', { bubbles: true })); }
+                if(nameEl) nameEl.value = info.nama;
+                window.showPage('customer-booking');
+                setTimeout(() => { refreshBookingVoucher(true); }, 150);
+            };
+        }
+
+        async function loyaltyLookup() {
+            const input = document.getElementById('loy-team-input');
+            const name = String(input?.value || '').trim();
+            if(!name) { renderLoyaltyResult(null); return; }
+            try { localStorage.setItem(LOYALTY_STORE_KEY, name); } catch(e) {}
+            const token = ++loyaltyLookupToken;
+            const box = document.getElementById('loy-result');
+            if(box) box.innerHTML = '<div class="loy-hint">Memuat data poin...</div>';
+            try {
+                const info = await fetchLoyalty(name);
+                if(token !== loyaltyLookupToken) return;
+                renderLoyaltyResult(info);
+            } catch(err) {
+                console.error(err);
+                if(token !== loyaltyLookupToken) return;
+                renderLoyaltyResult(null, 'Data poin belum bisa dimuat. Periksa koneksi lalu coba lagi.');
+            }
+        }
+
+        // ---- Voucher di form booking ----
+        let bookingVoucherToken = 0;
+        let bookingVoucherTimer = null;
+        async function refreshBookingVoucher(autoCheck) {
+            const wrap = document.getElementById('cust-voucher-wrap');
+            const check = document.getElementById('cust-voucher-use');
+            const text = document.getElementById('cust-voucher-text');
+            if(!wrap || !check) return;
+            const name = String(document.getElementById('cust-nama')?.value || '').trim();
+            const status = document.getElementById('cust-status')?.value || 'Non-Member';
+            const token = ++bookingVoucherToken;
+            if(!name || status !== 'Non-Member') { wrap.style.display = 'none'; check.checked = false; return; }
+            try {
+                const info = await fetchLoyalty(name);
+                if(token !== bookingVoucherToken) return;
+                if(info && info.available > 0) {
+                    wrap.style.display = '';
+                    if(text) text.textContent = `Tersedia ${info.available} voucher · dipotong ${loyaltyRp(LOYALTY_VOUCHER_VALUE)} saat pelunasan`;
+                    if(autoCheck === true) check.checked = true;
+                } else {
+                    wrap.style.display = 'none'; check.checked = false;
+                }
+            } catch(err) {
+                if(token !== bookingVoucherToken) return;
+                wrap.style.display = 'none'; check.checked = false;
+            }
+        }
+        function scheduleBookingVoucherRefresh() {
+            clearTimeout(bookingVoucherTimer);
+            bookingVoucherTimer = setTimeout(() => refreshBookingVoucher(false), 450);
+        }
+        (function initLoyaltyUi() {
+            const nameEl = document.getElementById('cust-nama');
+            const statusEl = document.getElementById('cust-status');
+            if(nameEl) { nameEl.addEventListener('input', scheduleBookingVoucherRefresh); nameEl.addEventListener('change', scheduleBookingVoucherRefresh); }
+            if(statusEl) statusEl.addEventListener('change', scheduleBookingVoucherRefresh);
+            const form = nameEl?.closest('form');
+            if(form) form.addEventListener('reset', () => setTimeout(() => refreshBookingVoucher(false), 50));
+
+            const btn = document.getElementById('loy-check-btn');
+            const input = document.getElementById('loy-team-input');
+            if(btn) btn.addEventListener('click', loyaltyLookup);
+            if(input) input.addEventListener('keydown', ev => { if(ev.key === 'Enter') { ev.preventDefault(); loyaltyLookup(); } });
+
+            const page = document.getElementById('page-customer-loyalty');
+            if(page) {
+                let wasHidden = true;
+                new MutationObserver(() => {
+                    const hidden = page.classList.contains('hidden');
+                    if(wasHidden && !hidden) {
+                        let saved = '';
+                        try { saved = localStorage.getItem(LOYALTY_STORE_KEY) || ''; } catch(e) {}
+                        const typed = String(document.getElementById('cust-nama')?.value || '').trim();
+                        if(input && !input.value) input.value = typed || saved;
+                        if(input && input.value) loyaltyLookup();
+                    }
+                    wasHidden = hidden;
+                }).observe(page, { attributes: true, attributeFilter: ['class'] });
+            }
+        })();
 
         function getNamaHari(dateStr) {
             let days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -7533,6 +7728,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.submitCustomerBooking = async (e) => {
             e.preventDefault();
+            if(!(window.__realData.member && window.__realData.booking)) {
+                alert('Data jadwal sedang disegarkan dari server. Mohon tunggu beberapa detik lalu tekan kirim lagi.');
+                return;
+            }
             let tglInput = document.getElementById('cust-tanggal').value;
             if(!tglInput) {
                 alert('Silakan pilih tanggal main terlebih dahulu.');
@@ -7628,7 +7827,30 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             try {
-                await push(ref(db, 'booking'), data);
+                // Voucher Team Loyalty Reward (Rp50.000) — hanya Non-Member & jika masih tersedia.
+                let voucherInfo = null;
+                if(statusVal === 'Non-Member' && document.getElementById('cust-voucher-use')?.checked) {
+                    voucherInfo = await fetchLoyalty(namaTim);
+                    if(!voucherInfo || voucherInfo.available < 1) {
+                        alert('Voucher loyalty tidak tersedia untuk tim ini. Silakan hilangkan centang voucher.');
+                        refreshBookingVoucher();
+                        return;
+                    }
+                    data.voucherLoyalty = LOYALTY_VOUCHER_VALUE;
+                    data.voucherLoyaltyKey = voucherInfo.key;
+                    data.voucherLoyaltyKet = 'Voucher Team Loyalty Reward';
+                }
+                const bookingPushRef = await push(ref(db, 'booking'), data);
+                if(voucherInfo) {
+                    try {
+                        const logId = (bookingPushRef && bookingPushRef.key) || ('v' + Date.now());
+                        await update(ref(db, 'loyaltyReward/' + voucherInfo.key), {
+                            nama: voucherInfo.nama,
+                            ['voucherLog/' + logId]: tglInput,
+                            updatedAt: Date.now()
+                        });
+                    } catch(err) { console.warn('Voucher loyalty belum tercatat di node reward:', err); }
+                }
 
                 // Jika customer meminta dicarikan lawan, buat permintaan sparring
                 // pada node yang sama dengan web admin agar langsung tersinkron.
@@ -7669,7 +7891,7 @@ Mau konfirmasi booking dari *${namaTim}* ya.
 📅 Hari/tanggal: ${formattedTanggal}
 ⏰ Jam main: ${jamInput}
 💰 DP: Rp${formattedDp}
-💳 Metode pembayaran: ${metodeVal}
+${voucherInfo ? `🎟️ Voucher Team Loyalty Reward: Rp${LOYALTY_VOUCHER_VALUE.toLocaleString('id-ID')}\n` : ''}💳 Metode pembayaran: ${metodeVal}
 📱 No. HP/WA: ${noHp}${sparringText}
 
 Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
@@ -8477,7 +8699,76 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
             loadJamKosongCustomer();
         }
 
-        onValue(ref(db, 'member'), (snapshot) => {
+        // =====================================================================
+        // CACHE DATA (IndexedDB) — seperti di web admin.
+        // Data member/booking/sparing yang pernah diterima disimpan di perangkat.
+        // Saat web dibuka lagi, data tersimpan langsung dipakai (loading cepat),
+        // lalu otomatis diperbarui begitu data terbaru dari Firebase tiba.
+        // =====================================================================
+        window.__realData = window.__realData || {};
+        const __CCACHE_MAX_AGE = 3 * 24 * 3600 * 1000;
+        const __CIDB = (function(){
+            let dbp = null;
+            function open(){
+                if(dbp) return dbp;
+                dbp = new Promise((res, rej) => {
+                    try {
+                        const r = indexedDB.open('sandaga-customer-cache', 1);
+                        r.onupgradeneeded = () => r.result.createObjectStore('kv');
+                        r.onsuccess = () => res(r.result);
+                        r.onerror = () => rej(r.error);
+                    } catch(e) { rej(e); }
+                });
+                return dbp;
+            }
+            return {
+                get(k){
+                    return open().then(d => new Promise(res => {
+                        const q = d.transaction('kv').objectStore('kv').get(k);
+                        q.onsuccess = () => res(q.result);
+                        q.onerror = () => res(undefined);
+                    })).catch(() => undefined);
+                },
+                set(k, v){
+                    return open().then(d => { d.transaction('kv', 'readwrite').objectStore('kv').put(v, k); }).catch(() => {});
+                }
+            };
+        })();
+        function __cachedSnap(val){
+            const v = val || null;
+            const mk = (key, value) => ({ key, val: () => value, exists: () => value !== null && value !== undefined });
+            return {
+                val: () => v,
+                exists: () => v !== null && typeof v === 'object' && Object.keys(v).length > 0,
+                forEach: (cb) => { if(!v) return false; for(const k of Object.keys(v)){ if(cb(mk(k, v[k])) === true) return true; } return false; },
+                key: null
+            };
+        }
+        const __cacheSaveTimers = {};
+        function cachedOnValue(name, q, handler, filterFn){
+            let real = false;
+            __CIDB.get('c1:' + name).then(rec => {
+                if(real || !rec || !rec.t || (Date.now() - rec.t) > __CCACHE_MAX_AGE) return;
+                try {
+                    let v = rec.v;
+                    if(filterFn && v) v = filterFn(v);
+                    handler(__cachedSnap(v));
+                } catch(e) { console.warn('Cache ' + name + ' gagal dipakai:', e); }
+            });
+            return onValue(q, (snapshot) => {
+                real = true;
+                window.__realData[name.split(':')[0]] = true;
+                try { handler(snapshot); }
+                finally {
+                    clearTimeout(__cacheSaveTimers[name]);
+                    __cacheSaveTimers[name] = setTimeout(() => {
+                        try { __CIDB.set('c1:' + name, { t: Date.now(), v: snapshot.val() === undefined ? null : snapshot.val() }); } catch(e) {}
+                    }, 300);
+                }
+            });
+        }
+
+        cachedOnValue('member', ref(db, 'member'), (snapshot) => {
             globalCache.member = {};
             globalCache.memberTanpaJadwal = globalCache.memberTanpaJadwal || {};
             if (snapshot.exists()) {
@@ -8514,7 +8805,7 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
 
         // Sinkronkan member tanpa jadwal tetap jika fitur tersebut menyimpan
         // datanya pada node Firebase khusus.
-        onValue(ref(db, 'memberTanpaJadwal'), (snapshot) => {
+        cachedOnValue('memberTanpaJadwal', ref(db, 'memberTanpaJadwal'), (snapshot) => {
             // Jangan menghapus data tanpa jadwal yang mungkin tersimpan langsung
             // di node `member` ketika node khusus ini belum ada.
             const merged = { ...(globalCache.memberTanpaJadwal || {}) };
@@ -8583,31 +8874,47 @@ Kalau sudah sesuai, mohon dibantu konfirmasi ya min. Terima kasih 🙏`;
         }
         let bookingFullHistoryLoaded = false;
         const bookingQueryTodayOnwards = query(ref(db, 'booking'), orderByChild('tgl'), startAt(getLocalMonthStartString()));
-        onValue(bookingQueryTodayOnwards, (snapshot) => {
+        cachedOnValue('booking:' + getLocalMonthStartString(), bookingQueryTodayOnwards, (snapshot) => {
             if(bookingFullHistoryLoaded) return; // riwayat lengkap sudah mengambil alih, jangan ditimpa subset ini
             globalCache.booking = snapshot.val() || {};
             customerScheduleBookingDataReady = true;
             renderAll();
             maybeHideCustomerScheduleLoader();
             maybeHideCustomerBookingLoader();
-        });
+        }, (v) => { const t = getLocalMonthStartString(); const o = {}; Object.keys(v).forEach(k => { if(v[k] && String(v[k].tgl || '') >= t) o[k] = v[k]; }); return o; });
 
         // Dipersempit: hanya ambil data sparring dengan tanggal >= hari ini
         // (yang masih aktif/mencari lawan atau jadwal mendatang). Histori
         // tanggal lampau tidak lagi ikut terunduh, supaya loading customer
         // tidak perlu menunggu seluruh data lama yang sudah menumpuk.
         const sparringQueryTodayOnwards = query(ref(db, 'sparring'), orderByChild('tanggal'), startAt(getLocalDateString()));
-        onValue(sparringQueryTodayOnwards, (snapshot) => {
+        cachedOnValue('sparring', sparringQueryTodayOnwards, (snapshot) => {
             globalCache.sparring = snapshot.val() || {};
             customerSparringDataReady = true;
             renderCustomerSparring();
             hideCustomerSparringLoader();
-        });
+        }, (v) => { const t = getLocalDateString(); const o = {}; Object.keys(v).forEach(k => { if(v[k] && String(v[k].tanggal || '') >= t) o[k] = v[k]; }); return o; });
 
         // Data khusus admin (riwayat booking lengkap, pemasukan, minuman,
         // pengeluaran) sudah tidak pernah diambil sama sekali di web customer
         // ini — panel admin (loadAdminReportData) sudah dihapus karena
         // pengelolaan admin kini sepenuhnya ada di web admin terpisah.
+
+
+        // Batas keras loading: loader data (jadwal/booking/sparing) tidak tampil lebih dari 3 detik.
+        (function capCustomerDataLoaders(){
+            const wrapShow = (getFn, setFn, hideFn) => {
+                const orig = getFn();
+                setFn(function(){
+                    const r = orig.apply(this, arguments);
+                    setTimeout(() => { try { hideFn(); } catch(e) {} }, 3000);
+                    return r;
+                });
+            };
+            wrapShow(() => showCustomerScheduleLoader, f => { showCustomerScheduleLoader = f; }, hideCustomerScheduleLoader);
+            wrapShow(() => showCustomerBookingLoader, f => { showCustomerBookingLoader = f; }, hideCustomerBookingLoader);
+            wrapShow(() => showCustomerSparringLoader, f => { showCustomerSparringLoader = f; }, hideCustomerSparringLoader);
+        })();
 
         function isMemberActiveOnDate(member, dateStr) {
             if(!member || !dateStr) return false;
@@ -10487,6 +10794,14 @@ body:has(#page-customer-sparring:not(.hidden)) > .customer-sticky-back[data-back
 </span>
 <span class="customer-bottom-nav-label">Promo</span>
 </button>
+<button aria-label="Team Loyalty Reward" class="customer-bottom-nav-item" data-page="customer-loyalty" onclick="showPage('customer-loyalty')" type="button">
+<span aria-hidden="true" class="customer-bottom-nav-icon">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24">
+<path d="M12 3.2l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16l-5 2.6.9-5.6-4-3.9 5.6-.8L12 3.2Z"></path>
+</svg>
+</span>
+<span class="customer-bottom-nav-label">Reward</span>
+</button>
 </nav>
 <style id="customer-bottom-nav-liquid-glass-v2">
 #customer-bottom-nav {
@@ -10599,7 +10914,7 @@ body:has(#page-customer-booking:not(.hidden)) main,
 body:has(#page-customer-sparring:not(.hidden)) main {
     padding-bottom: 110px !important;
 }
-body:not(:has(#page-home:not(.hidden))):not(:has(#page-customer-schedule:not(.hidden))):not(:has(#page-customer-price:not(.hidden))):not(:has(#page-customer-booking:not(.hidden))):not(:has(#page-customer-sparring:not(.hidden))):not(:has(#page-customer-member:not(.hidden))):not(:has(#page-customer-promo:not(.hidden))) #customer-bottom-nav {
+body:not(:has(#page-home:not(.hidden))):not(:has(#page-customer-schedule:not(.hidden))):not(:has(#page-customer-price:not(.hidden))):not(:has(#page-customer-booking:not(.hidden))):not(:has(#page-customer-sparring:not(.hidden))):not(:has(#page-customer-member:not(.hidden))):not(:has(#page-customer-promo:not(.hidden))):not(:has(#page-customer-loyalty:not(.hidden))) #customer-bottom-nav {
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
@@ -10675,7 +10990,8 @@ body:not(:has(#page-home:not(.hidden))):not(:has(#page-customer-schedule:not(.hi
         'customer-booking',
         'customer-sparring',
         'customer-member',
-        'customer-promo'
+        'customer-promo',
+        'customer-loyalty'
     ]);
 
     window.updateCustomerBottomNav = function(id) {
@@ -13092,7 +13408,7 @@ body:has(#page-customer-member:not(.hidden)) #customer-bottom-nav{visibility:vis
   const bar=document.getElementById('sandaga-startup-progress-bar');
   const pct=document.getElementById('sandaga-startup-percent');
   if(!loader||!bar||!pct) return;
-  const MAX_MS=2500;               // batas keras: loading tidak lebih dari ~3 detik
+  const MAX_MS=Math.max(250,2400-((window.performance&&performance.now)?performance.now():0));  // batas keras: total loading maksimal 3 detik sejak halaman dibuka
   let value=0, finished=false, domReady=document.readyState!=='loading';
   function setProgress(n){
     value=Math.max(value,Math.min(100,n));
@@ -26250,7 +26566,7 @@ html body #page-customer-schedule .cs-period-nav:focus-visible{outline:3px solid
 
 
 <style id="customer-solid-header-v1">
-html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
+html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
   background:linear-gradient(135deg,#ffffff 0%,#e4f0ff 100%) !important;
   background-image:linear-gradient(135deg,#ffffff 0%,#e4f0ff 100%) !important;
   -webkit-backdrop-filter:none !important;
@@ -26261,7 +26577,7 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
   overflow:hidden !important;
   opacity:1 !important;
 }
-html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header)::before{
+html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header)::before{
   background:linear-gradient(180deg,rgba(255,255,255,.55),transparent 55%) !important;
 }
 #head-mask{
@@ -26272,7 +26588,7 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
 </style>
 <script id="customer-solid-header-v1-js">
 (function(){
-  var SEL='#page-customer-booking .customer-booking-page-head,#page-customer-sparring .customer-booking-page-head,#page-customer-member .customer-member-page-head,#page-customer-schedule .customer-member-page-head,#page-customer-price .customer-booking-page-head,#page-customer-promo .customer-booking-page-head';
+  var SEL='#page-customer-booking .customer-booking-page-head,#page-customer-sparring .customer-booking-page-head,#page-customer-member .customer-member-page-head,#page-customer-schedule .customer-member-page-head,#page-customer-price .customer-booking-page-head,#page-customer-promo .customer-booking-page-head,#page-customer-loyalty .customer-booking-page-head';
   var mask,inner,lastKey='';
   function activeHead(){
     var list=document.querySelectorAll(SEL),vh=window.innerHeight;
@@ -26321,18 +26637,18 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
 </script>
 <style id="desktop-menu-header-sticky-fix">
 @media (min-width:641px){
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty){
     overflow:visible !important;
   }
   html body:not(#_a):not(#_b):not(#_c){ overflow-x:clip !important; overflow-y:visible !important; }
   html body:not(#_a) main{ overflow:visible !important; }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
     position:sticky !important;
     top:16px !important;
     z-index:9990 !important;
     isolation:isolate !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) :is(h1,h2,h3,p,span){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) :is(h1,h2,h3,p,span){
     color:#132a5e !important;
     text-shadow:none !important;
   }
@@ -26388,14 +26704,14 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
     margin-top:0 !important;
     padding-top:0 !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty){
     width:100% !important;
     max-width:none !important;
     margin:0 !important;
     padding:0 !important;
     box-sizing:border-box !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header){
     position:sticky !important;
     top:16px !important;
     z-index:9990 !important;
@@ -26414,7 +26730,7 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
     left:auto !important;
     right:auto !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-head-logo,.customer-member-head-logo){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty) :is(.customer-booking-head-logo,.customer-member-head-logo){
     flex:0 0 76px !important;
     width:76px !important;
     height:76px !important;
@@ -26424,19 +26740,19 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
     align-items:center !important;
     justify-content:center !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-head-logo,.customer-member-head-logo) img{
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty) :is(.customer-booking-head-logo,.customer-member-head-logo) img{
     width:100% !important;
     height:100% !important;
     object-fit:contain !important;
     display:block !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-head-copy,.customer-member-head-copy){
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty) :is(.customer-booking-head-copy,.customer-member-head-copy){
     order:0 !important;
     min-width:0 !important;
     flex:1 1 auto !important;
     text-align:left !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) h2{
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) h2{
     display:block !important;
     width:auto !important;
     margin:0 !important;
@@ -26447,7 +26763,7 @@ html body :is(#page-customer-booking,#page-customer-sparring,#page-customer-memb
     font-weight:950 !important;
     white-space:normal !important;
   }
-  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) h2 span{
+  html body:not(#_a):not(#_b):not(#_c) :is(#page-customer-booking,#page-customer-sparring,#page-customer-member,#page-customer-schedule,#page-customer-price,#page-customer-promo,#page-customer-loyalty) :is(.customer-booking-page-head,.customer-member-page-head,.customer-price-booking-header) h2 span{
     display:block !important;
     font-size:.88em !important;
   }
@@ -26815,4 +27131,62 @@ new MutationObserver(onPageChange).observe(page, { attributes: true, attributeFi
 onPageChange();
 </script>
 
+<style id="customer-loyalty-style">
+/* ===== TEAM LOYALTY REWARD ===== */
+#customer-bottom-nav{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+@media(max-width:640px){#customer-bottom-nav{grid-template-columns:repeat(7,minmax(0,1fr))!important}#customer-bottom-nav .customer-bottom-nav-label{font-size:7.5px!important;letter-spacing:0!important}}
+body:has(#page-customer-loyalty:not(.hidden)) #customer-bottom-nav{visibility:visible!important;opacity:1!important;pointer-events:auto!important;display:grid!important}
+body:has(#page-customer-loyalty:not(.hidden)) main{padding-bottom:110px!important;margin-top:0!important;padding-top:0!important}
+body:has(#page-customer-loyalty:not(.hidden)) > header{display:none!important;visibility:hidden!important;opacity:0!important;height:0!important;min-height:0!important;max-height:0!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;overflow:hidden!important;pointer-events:none!important}
+html body #page-customer-loyalty,html body #page-customer-loyalty.customer-content-page{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:0!important;margin-top:0!important;overflow:visible!important}
+html body #page-customer-loyalty::before,html body #page-customer-loyalty::after{display:none!important;content:none!important}
+@media(max-width:640px){
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-loyalty{position:relative!important;padding-top:102px!important;padding-left:6px!important;padding-right:6px!important;padding-bottom:112px!important;overflow:visible!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-loyalty .customer-booking-page-head{position:fixed!important;top:16px!important;left:12px!important;right:12px!important;width:auto!important;max-width:none!important;margin:0!important;box-sizing:border-box!important;z-index:9990!important;isolation:isolate!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:11px!important;min-height:82px!important;padding:10px 13px!important;background:linear-gradient(135deg,#ffffff 0%,#e4f0ff 100%)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:1px solid #fff!important;border-radius:22px!important;box-shadow:0 10px 26px rgba(2,6,23,.22)!important;overflow:hidden!important;opacity:1!important;transform:none!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-loyalty .customer-booking-head-logo{order:1!important;flex:0 0 58px!important;width:58px!important;height:58px!important;margin:0!important;display:flex!important;align-items:center!important;justify-content:center!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-loyalty .customer-booking-head-logo img{width:100%!important;height:100%!important;object-fit:contain!important;display:block!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-loyalty .customer-booking-head-copy{order:2!important;min-width:0!important;flex:1 1 auto!important;text-align:left!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-loyalty .customer-booking-page-head h2{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:2px!important;margin:0!important;color:#132a5e!important;font-size:clamp(.78rem,3.4vw,1.02rem)!important;line-height:1.15!important;letter-spacing:.03em!important;font-weight:950!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-loyalty .customer-booking-page-head h2 span{display:block!important;font-size:1em!important;color:#132a5e!important}
+}
+@media(max-width:380px){
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-loyalty{padding-top:86px!important;padding-left:3px!important;padding-right:3px!important;padding-bottom:104px!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-loyalty .customer-booking-page-head{top:6px!important;left:9px!important;right:9px!important;min-height:76px!important;gap:9px!important;padding:9px 11px!important}
+  html body:not(#_a):not(#_b):not(#_c) #page-customer-loyalty .customer-booking-head-logo{flex-basis:52px!important;width:52px!important;height:52px!important}
+}
+@media(min-width:641px){
+  #page-customer-loyalty .customer-booking-page-head{margin-bottom:14px}
+  #page-customer-loyalty .loy-wrap{max-width:520px;margin:0 auto}
+}
+#page-customer-loyalty .loy-wrap{display:flex;flex-direction:column;gap:12px}
+#page-customer-loyalty .loy-card{background:rgba(255,255,255,.95);border:1px solid #fff;border-radius:18px;padding:14px;box-shadow:0 8px 22px rgba(2,6,23,.14);color:#13224f}
+#page-customer-loyalty .loy-label{display:block;font-size:.72rem;font-weight:900;margin-bottom:6px;color:#132a5e}
+#page-customer-loyalty .loy-row{display:flex;gap:8px}
+#page-customer-loyalty .loy-input{flex:1 1 auto;min-width:0;height:44px;padding:0 12px;border:1px solid #cbd5e1;border-radius:12px;font-size:.9rem;font-weight:700;color:#0f172a;background:#fff;outline:none}
+#page-customer-loyalty .loy-input:focus{border-color:#132a5e;box-shadow:0 0 0 3px rgba(19,42,94,.15)}
+.loy-btn{flex:0 0 auto;height:44px;padding:0 16px;border:0;border-radius:12px;background:#132a5e;color:#fff;font-size:.8rem;font-weight:900;cursor:pointer;white-space:nowrap}
+.loy-btn:active{transform:scale(.97)}
+#page-customer-loyalty .loy-result{margin-top:12px}
+#page-customer-loyalty .loy-hint{font-size:.74rem;font-weight:700;color:#64748b;text-align:center;padding:10px 4px;line-height:1.5}
+#page-customer-loyalty .loy-hint.loy-error{color:#b91c1c}
+#page-customer-loyalty .loy-team{font-size:1rem;font-weight:950;text-align:center;word-break:break-word}
+#page-customer-loyalty .loy-points{text-align:center;font-size:.78rem;font-weight:800;color:#475569;margin:2px 0 10px}
+#page-customer-loyalty .loy-points b{font-size:1.5rem;color:#132a5e;font-weight:950}
+#page-customer-loyalty .loy-stamps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+#page-customer-loyalty .loy-stamp{aspect-ratio:1/1;display:grid;place-items:center;border-radius:50%;border:2px dashed #94a3b8;color:#94a3b8;font-weight:900;font-size:.85rem;background:#f8fafc}
+#page-customer-loyalty .loy-stamp.on{border:2px solid #15803d;background:#dcfce7;color:#15803d;font-size:1.1rem}
+#page-customer-loyalty .loy-progress{text-align:center;font-size:.74rem;font-weight:800;margin:10px 0;color:#334155}
+#page-customer-loyalty .loy-voucher{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border-radius:14px;border:1px dashed #94a3b8;background:#f1f5f9}
+#page-customer-loyalty .loy-voucher.on{border:1px solid #f59e0b;background:linear-gradient(135deg,#fffbeb,#fef3c7)}
+#page-customer-loyalty .loy-voucher b{display:block;font-size:.8rem;font-weight:950}
+#page-customer-loyalty .loy-voucher small{display:block;font-size:.66rem;font-weight:700;color:#64748b;margin-top:2px}
+#page-customer-loyalty .loy-meta{text-align:center;font-size:.64rem;font-weight:700;color:#94a3b8;margin-top:8px}
+#page-customer-loyalty .loy-rules-title{font-size:.8rem;font-weight:950;margin-bottom:6px}
+#page-customer-loyalty .loy-rules ul{margin:0;padding-left:18px;font-size:.72rem;font-weight:700;line-height:1.55;color:#334155}
+#page-customer-loyalty .loy-rules li{margin-bottom:3px}
+.loy-voucher-check{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
+.loy-voucher-check input{width:20px;height:20px;margin-top:2px;flex:0 0 auto;accent-color:#d97706}
+.loy-voucher-check b{display:block;font-size:.82rem;font-weight:900}
+.loy-voucher-check small{display:block;font-size:.68rem;font-weight:700;opacity:.75;margin-top:2px}
+</style>
 </body></html>
